@@ -77,6 +77,24 @@ describe('wishlist service unit tests (FR-62~FR-64)', () => {
     );
   });
 
+  test('wishlist insert failure is surfaced to the caller', async () => {
+    const dbError = new Error('insert failed');
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockRejectedValueOnce(dbError);
+
+    await expect(wishlistService.toggleWishlist(7, 10)).rejects.toThrow('insert failed');
+  });
+
+  test('wishlist removal failure is surfaced to the caller', async () => {
+    const dbError = new Error('delete failed');
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ wishlist_id: 1 }] })
+      .mockRejectedValueOnce(dbError);
+
+    await expect(wishlistService.toggleWishlist(7, 10)).rejects.toThrow('delete failed');
+  });
+
   test('getWishlist maps newest wishlist movies', async () => {
     pool.query.mockResolvedValueOnce({
       rows: [{

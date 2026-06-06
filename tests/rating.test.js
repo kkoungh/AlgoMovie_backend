@@ -80,8 +80,13 @@ describe('rating service unit tests (FR-52~FR-57)', () => {
   test('rating score is required and must be between 1 and 5', async () => {
     await expect(ratingService.writeRating({ userId: 7, movieId: 10 }))
       .rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
+    await expect(ratingService.writeRating({ userId: 7, movieId: 10, score: 0 }))
+      .rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
+    await expect(ratingService.writeRating({ userId: 7, movieId: 10, score: -1 }))
+      .rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
     await expect(ratingService.writeRating({ userId: 7, movieId: 10, score: 6 }))
       .rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
+    expect(pool.query).not.toHaveBeenCalled();
   });
 
   test('duplicate rating by same user and movie is blocked', async () => {

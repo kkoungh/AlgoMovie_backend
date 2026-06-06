@@ -37,6 +37,35 @@ describe('auth API integration (FR-01~FR-06, FR-17~FR-18)', () => {
     });
   });
 
+  test.each([
+    ['missing email', { password: 'safe-password', nickname: 'tester', genres: [1, 2, 3] }],
+    ['missing password', { email: 'tester@example.com', nickname: 'tester', genres: [1, 2, 3] }],
+  ])('registration validation fails for %s', async (_, payload) => {
+    const res = await request.post('/api/auth/register').send(payload);
+
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+    expect(authService.signUp).not.toHaveBeenCalled();
+  });
+
+  test('registration returns duplicate email errors from service', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const err = new Error('duplicate email');
+    err.status = 409;
+    err.code = 'EMAIL_DUPLICATE';
+    authService.signUp.mockRejectedValue(err);
+
+    const res = await request.post('/api/auth/register').send({
+      email: 'dupe@example.com',
+      password: 'safe-password',
+      nickname: 'dupe',
+      genres: [1, 2, 3],
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('EMAIL_DUPLICATE');
+  });
+
   test('email login succeeds and returns auth tokens', async () => {
     authService.login.mockResolvedValue({
       accessToken: 'access-token',
@@ -55,6 +84,17 @@ describe('auth API integration (FR-01~FR-06, FR-17~FR-18)', () => {
       refreshToken: 'refresh-token',
       user: { userId: 7 },
     });
+  });
+
+  test.each([
+    ['missing email', { password: 'safe-password' }],
+    ['missing password', { email: 'tester@example.com' }],
+  ])('login validation fails for %s', async (_, payload) => {
+    const res = await request.post('/api/auth/login').send(payload);
+
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+    expect(authService.login).not.toHaveBeenCalled();
   });
 
   test('protected user actions reject unauthenticated requests', async () => {
@@ -182,6 +222,31 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
     );
   });
 
+  test('login rejects a non-existent email', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    await expect(authService.login({ email: 'missing@example.com', password: 'pw' }))
+      .rejects.toMatchObject({ status: 401, code: 'INVALID_CREDENTIALS' });
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+  });
+
+  test('login rejects a wrong password', async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [{
+        user_id: 7,
+        email: 'tester@example.com',
+        nickname: 'tester',
+        password_hash: 'hash',
+        status: 'ACTIVE',
+      }],
+    });
+    bcrypt.compare.mockResolvedValueOnce(false);
+
+    await expect(authService.login({ email: 'tester@example.com', password: 'wrong' }))
+      .rejects.toMatchObject({ status: 401, code: 'INVALID_CREDENTIALS' });
+    expect(pool.query).toHaveBeenCalledTimes(1);
+  });
+
   test('withdraw marks account deleted and invalidates refresh tokens', async () => {
     pool.query.mockResolvedValue({ rows: [] });
 
@@ -192,5 +257,65 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
       [7]
     );
     expect(pool.query).toHaveBeenCalledWith('DELETE FROM refresh_tokens WHERE user_id = $1', [7]);
+  });
+});
+
+describe('auth middleware unit tests', () => {
+  let authenticate;
+  let optionalAuth;
+  let jwt;
+  let req;
+  let res;
+  let next;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.unmock('../src/middleware/auth');
+    jest.dontMock('../src/middleware/auth');
+    jest.unmock('jsonwebtoken');
+    jest.doMock('jsonwebtoken', () => ({
+      verify: jest.fn(),
+    }));
+    ({ authenticate, optionalAuth } = require('../src/middleware/auth'));
+    jwt = require('jsonwebtoken');
+    req = { headers: {} };
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    next = jest.fn();
+  });
+
+  test('authenticate rejects when token is missing', () => {
+    authenticate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'UNAUTHORIZED' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('authenticate rejects an invalid token', () => {
+    req.headers.authorization = 'Bearer invalid-token';
+    jwt.verify.mockImplementation(() => {
+      throw new Error('bad token');
+    });
+
+    authenticate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'INVALID_TOKEN' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('optionalAuth ignores invalid tokens and continues as guest', () => {
+    req.headers.authorization = 'Bearer invalid-token';
+    jwt.verify.mockImplementation(() => {
+      throw new Error('bad token');
+    });
+
+    optionalAuth(req, res, next);
+
+    expect(req.user).toBeUndefined();
+    expect(next).toHaveBeenCalled();
   });
 });
