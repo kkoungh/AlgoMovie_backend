@@ -1,14 +1,20 @@
 const pool = require('../config/database');
 
-const getMovies = async ({ genre, page = 1, limit = 20 }) => {
+const getMovies = async ({ genre, country, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
   const params = [];
-  let where = '';
+  const conditions = [];
 
   if (genre) {
     params.push(`%${genre}%`);
-    where = `WHERE genres::text ILIKE $${params.length}`;
+    conditions.push(`genres::text ILIKE $${params.length}`);
   }
+  if (country) {
+    params.push(country);
+    conditions.push(`origin_country = $${params.length}`);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   params.push(limit, offset);
   const moviesResult = await pool.query(
@@ -19,7 +25,7 @@ const getMovies = async ({ genre, page = 1, limit = 20 }) => {
     params
   );
 
-  const countParams = genre ? [params[0]] : [];
+  const countParams = params.slice(0, params.length - 2);
   const countResult = await pool.query(
     `SELECT COUNT(*) FROM movies ${where}`,
     countParams
