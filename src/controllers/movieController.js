@@ -2,8 +2,8 @@ const movieService = require('../services/movieService');
 
 const getMovies = async (req, res, next) => {
   try {
-    const { genre, page, limit } = req.query;
-    const result = await movieService.getMovies({ genre, page, limit });
+    const { genre, country, page, limit } = req.query;
+    const result = await movieService.getMovies({ genre, country, page, limit });
     res.json(result);
   } catch (err) {
     next(err);

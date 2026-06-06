@@ -19,11 +19,12 @@ const fetchPage = async (page) => {
 };
 
 const upsertMovie = async (movie) => {
-  const genres = movie.genre_ids.map((id) => genreIdToName(id)).filter(Boolean);
+  const genres  = movie.genre_ids.map((id) => genreIdToName(id)).filter(Boolean);
+  const country = (movie.origin_country && movie.origin_country[0]) || 'US';
   await pool.query(
-    `INSERT INTO movies (tmdb_id, title, genres, overview, poster_path, release_year)
-     VALUES ($1, $2, $3::jsonb, $4, $5, $6)
-     ON CONFLICT (tmdb_id) DO NOTHING`,
+    `INSERT INTO movies (tmdb_id, title, genres, overview, poster_path, release_year, origin_country)
+     VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)
+     ON CONFLICT (tmdb_id) DO UPDATE SET origin_country = EXCLUDED.origin_country`,
     [
       movie.id,
       movie.title,
@@ -31,6 +32,7 @@ const upsertMovie = async (movie) => {
       movie.overview || null,
       movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
       movie.release_date ? parseInt(movie.release_date.slice(0, 4)) : null,
+      country,
     ]
   );
 };
