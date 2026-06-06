@@ -3,7 +3,7 @@ const jwt       = require('jsonwebtoken');
 const crypto    = require('crypto');
 const pool      = require('../config/database');
 
-const SALT_ROUNDS = 12;
+const SALT_ROUNDS = 10;
 
 const signUp = async ({ email, password, nickname, genres }) => {
   // 이메일 중복 검사
