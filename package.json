@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "sync-movies": "node src/scripts/syncMovies.js"
+    "sync-movies": "node src/scripts/syncMovies.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -21,6 +23,8 @@
     "pg": "^8.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.4"
   }
 }
