@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS movies (
   overview     TEXT,
   poster_path  VARCHAR(500),
   release_year INT,
+  origin_country VARCHAR(10),
   avg_rating   FLOAT        NOT NULL DEFAULT 0.0,
   rating_count INT          NOT NULL DEFAULT 0,
   created_at   TIMESTAMP    NOT NULL DEFAULT NOW()
