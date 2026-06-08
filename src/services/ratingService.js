@@ -1,4 +1,4 @@
-const pool  = require('../config/database');
+const pool = require('../config/database');
 const redis = require('../config/redis');
 const axios = require('axios');
 
@@ -6,7 +6,8 @@ const writeRating = async ({ userId, movieId, score, review }) => {
   // 평점 범위 검증
   if (!score || score < 1 || score > 5) {
     const err = new Error('평점은 1~5 사이여야 합니다.');
-    err.status = 422; err.code = 'VALIDATION_ERROR';
+    err.status = 422;
+    err.code = 'VALIDATION_ERROR';
     throw err;
   }
 
@@ -17,7 +18,8 @@ const writeRating = async ({ userId, movieId, score, review }) => {
   );
   if (dup.rows.length > 0) {
     const err = new Error('이미 평가한 영화입니다.');
-    err.status = 409; err.code = 'DUPLICATE';
+    err.status = 409;
+    err.code = 'DUPLICATE';
     throw err;
   }
 
@@ -39,10 +41,7 @@ const writeRating = async ({ userId, movieId, score, review }) => {
   );
 
   // 사용자 누적 평점 수 증가
-  await pool.query(
-    'UPDATE users SET rating_count = rating_count + 1 WHERE user_id = $1',
-    [userId]
-  );
+  await pool.query('UPDATE users SET rating_count = rating_count + 1 WHERE user_id = $1', [userId]);
 
   // 비동기 백그라운드: 추천 재계산 트리거 + 캐시 무효화
   setImmediate(async () => {
@@ -74,15 +73,15 @@ const getMyRatings = async (userId) => {
   );
 
   return result.rows.map((row) => ({
-    ratingId:  row.rating_id,
-    score:     row.score,
-    review:    row.review,
+    ratingId: row.rating_id,
+    score: row.score,
+    review: row.review,
     createdAt: row.created_at,
     movie: {
-      movieId:    row.movie_id,
-      title:      row.title,
+      movieId: row.movie_id,
+      title: row.title,
       posterPath: row.poster_path,
-      avgRating:  parseFloat(row.avg_rating) || 0,
+      avgRating: parseFloat(row.avg_rating) || 0,
     },
   }));
 };

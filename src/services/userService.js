@@ -8,7 +8,8 @@ const getProfile = async (userId) => {
   );
   if (userResult.rows.length === 0) {
     const err = new Error('사용자를 찾을 수 없습니다.');
-    err.status = 404; err.code = 'USER_NOT_FOUND';
+    err.status = 404;
+    err.code = 'USER_NOT_FOUND';
     throw err;
   }
 
@@ -22,19 +23,19 @@ const getProfile = async (userId) => {
 
   const user = userResult.rows[0];
   return {
-    userId:          user.user_id,
-    email:           user.email,
-    nickname:        user.nickname,
+    userId: user.user_id,
+    email: user.email,
+    nickname: user.nickname,
     profileImageUrl: user.profile_image_url,
-    ratingCount:     user.rating_count,
+    ratingCount: user.rating_count,
     preferredGenres: genreResult.rows.map((r) => ({ genreId: r.genre_id, name: r.name })),
   };
 };
 
 const updateProfile = async (userId, { nickname, profileImageUrl }) => {
-  const fields  = [];
-  const values  = [];
-  let   paramIdx = 1;
+  const fields = [];
+  const values = [];
+  let paramIdx = 1;
 
   if (nickname !== undefined) {
     fields.push(`nickname = $${paramIdx++}`);
@@ -47,15 +48,13 @@ const updateProfile = async (userId, { nickname, profileImageUrl }) => {
 
   if (fields.length === 0) {
     const err = new Error('수정할 항목이 없습니다.');
-    err.status = 422; err.code = 'VALIDATION_ERROR';
+    err.status = 422;
+    err.code = 'VALIDATION_ERROR';
     throw err;
   }
 
   values.push(userId);
-  await pool.query(
-    `UPDATE users SET ${fields.join(', ')} WHERE user_id = $${paramIdx}`,
-    values
-  );
+  await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE user_id = $${paramIdx}`, values);
 
   return getProfile(userId);
 };

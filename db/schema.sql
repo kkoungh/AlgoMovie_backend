@@ -1,6 +1,8 @@
 -- AlgoMovie Database Schema
 -- PostgreSQL
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- 장르 테이블
 CREATE TABLE IF NOT EXISTS genres (
   genre_id SERIAL PRIMARY KEY,
@@ -107,14 +109,21 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 -- 인덱스
 CREATE INDEX IF NOT EXISTS idx_ratings_user_id        ON ratings(user_id);
 CREATE INDEX IF NOT EXISTS idx_ratings_movie_id       ON ratings(movie_id);
+CREATE INDEX IF NOT EXISTS idx_ratings_movie_recent   ON ratings(movie_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recommend_user_id      ON recommend_scores(user_id);
 CREATE INDEX IF NOT EXISTS idx_recommend_final_score  ON recommend_scores(final_score DESC);
+CREATE INDEX IF NOT EXISTS idx_recommend_user_score   ON recommend_scores(user_id, final_score DESC);
 CREATE INDEX IF NOT EXISTS idx_movies_tmdb_id         ON movies(tmdb_id);
 CREATE INDEX IF NOT EXISTS idx_movies_release_year    ON movies(release_year);
 CREATE INDEX IF NOT EXISTS idx_movies_avg_rating      ON movies(avg_rating DESC);
+CREATE INDEX IF NOT EXISTS idx_movies_rating_rank     ON movies(avg_rating DESC, rating_count DESC);
+CREATE INDEX IF NOT EXISTS idx_movies_title_trgm      ON movies USING GIN (title gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_movies_director_trgm   ON movies USING GIN (director gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_movies_genres_trgm     ON movies USING GIN ((genres::text) gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_movies_cast_trgm       ON movies USING GIN ((cast_members::text) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_view_history_user      ON view_history(user_id, viewed_at DESC);
-CREATE INDEX IF NOT EXISTS idx_wishlist_user          ON wishlist(user_id);
-CREATE INDEX IF NOT EXISTS idx_feedback_user          ON feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_user          ON wishlist(user_id, added_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_user          ON feedback(user_id, feedback_type);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user    ON refresh_tokens(user_id);
 
 -- 기본 장르 데이터

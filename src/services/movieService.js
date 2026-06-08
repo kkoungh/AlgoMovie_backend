@@ -37,9 +37,9 @@ const getMovies = async ({ genre, country, page = 1, limit = 20 }) => {
 
   return {
     movies: moviesResult.rows.map(formatMovie),
-    total:  parseInt(countResult.rows[0].count),
-    page:   parseInt(page),
-    limit:  parseInt(limit),
+    total: parseInt(countResult.rows[0].count),
+    page: parseInt(page),
+    limit: parseInt(limit),
   };
 };
 
@@ -49,7 +49,7 @@ const searchMovies = async ({ q, page = 1, limit = 20 }) => {
   }
 
   const keyword = `%${q.trim()}%`;
-  const offset  = (page - 1) * limit;
+  const offset = (page - 1) * limit;
 
   const result = await pool.query(
     `SELECT movie_id, tmdb_id, title, genres, director, poster_path, release_year, avg_rating, rating_count
@@ -70,7 +70,7 @@ const searchMovies = async ({ q, page = 1, limit = 20 }) => {
 
   return {
     movies: result.rows.map(formatMovie),
-    total:  parseInt(countResult.rows[0].count),
+    total: parseInt(countResult.rows[0].count),
   };
 };
 
@@ -124,13 +124,11 @@ const getPopularMovies = async ({ period = 'weekly' }) => {
 };
 
 const getMovieDetail = async (movieId, userId) => {
-  const result = await pool.query(
-    `SELECT * FROM movies WHERE movie_id = $1`,
-    [movieId]
-  );
+  const result = await pool.query(`SELECT * FROM movies WHERE movie_id = $1`, [movieId]);
   if (result.rows.length === 0) {
     const err = new Error('영화를 찾을 수 없습니다.');
-    err.status = 404; err.code = 'MOVIE_NOT_FOUND';
+    err.status = 404;
+    err.code = 'MOVIE_NOT_FOUND';
     throw err;
   }
 
@@ -163,10 +161,7 @@ const getMovieDetail = async (movieId, userId) => {
 };
 
 const getSimilarMovies = async (movieId) => {
-  const movieResult = await pool.query(
-    'SELECT genres FROM movies WHERE movie_id = $1',
-    [movieId]
-  );
+  const movieResult = await pool.query('SELECT genres FROM movies WHERE movie_id = $1', [movieId]);
   if (movieResult.rows.length === 0) return { movies: [] };
 
   const genres = movieResult.rows[0].genres;
@@ -190,21 +185,28 @@ const getGenres = async () => {
 };
 
 const formatMovie = (row) => ({
-  movieId:     row.movie_id,
-  tmdbId:      row.tmdb_id,
-  title:       row.title,
-  genres:      row.genres || [],
-  director:    row.director,
-  posterPath:  row.poster_path,
+  movieId: row.movie_id,
+  tmdbId: row.tmdb_id,
+  title: row.title,
+  genres: row.genres || [],
+  director: row.director,
+  posterPath: row.poster_path,
   releaseYear: row.release_year,
-  avgRating:   parseFloat(row.avg_rating) || 0,
+  avgRating: parseFloat(row.avg_rating) || 0,
   ratingCount: row.rating_count || 0,
 });
 
 const formatMovieDetail = (row) => ({
   ...formatMovie(row),
   castMembers: row.cast_members || [],
-  overview:    row.overview,
+  overview: row.overview,
 });
 
-module.exports = { getMovies, searchMovies, getPopularMovies, getMovieDetail, getSimilarMovies, getGenres };
+module.exports = {
+  getMovies,
+  searchMovies,
+  getPopularMovies,
+  getMovieDetail,
+  getSimilarMovies,
+  getGenres,
+};

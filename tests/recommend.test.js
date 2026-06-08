@@ -72,17 +72,11 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
 
     const result = await recommendationService.getRecommendations(7);
 
-    expect(axios.get).toHaveBeenCalledWith(
-      expect.stringContaining('/recommendations/7'),
-      { timeout: 10000 }
-    );
+    expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/recommendations/7'), {
+      timeout: 2500,
+    });
     expect(result).toHaveLength(30);
-    expect(redis.set).toHaveBeenCalledWith(
-      'recommendations:7',
-      JSON.stringify(result),
-      'EX',
-      3600
-    );
+    expect(redis.set).toHaveBeenCalledWith('recommendations:7', JSON.stringify(result), 'EX', 3600);
   });
 
   test('falls back to DB when Python recommendation service fails', async () => {
@@ -90,17 +84,19 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     redis.get.mockResolvedValue(null);
     axios.get.mockRejectedValue(new Error('service unavailable'));
     pool.query.mockResolvedValueOnce({
-      rows: [{
-        movie_id: 2,
-        title: 'Fallback Movie',
-        poster_path: '/poster.png',
-        avg_rating: '4.0',
-        genres: ['Drama'],
-        final_score: 0.75,
-        cf_score: 0.8,
-        content_score: 0.7,
-        popularity_score: 0.1,
-      }],
+      rows: [
+        {
+          movie_id: 2,
+          title: 'Fallback Movie',
+          poster_path: '/poster.png',
+          avg_rating: '4.0',
+          genres: ['Drama'],
+          final_score: 0.75,
+          cf_score: 0.8,
+          content_score: 0.7,
+          popularity_score: 0.1,
+        },
+      ],
     });
 
     const result = await recommendationService.getRecommendations(7);
@@ -113,6 +109,64 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
       cfScore: 0.8,
       contentScore: 0.7,
       popularityScore: 0.1,
+    });
+  });
+
+  test('uses an empty recommendation list when the external service omits data', async () => {
+    redis.get.mockResolvedValue(null);
+    axios.get.mockResolvedValue({ data: {} });
+
+    const result = await recommendationService.getRecommendations(7);
+
+    expect(result).toEqual([]);
+    expect(redis.set).toHaveBeenCalledWith('recommendations:7', '[]', 'EX', 3600);
+  });
+
+  test('continues when redis get and set fail around a successful API call', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    redis.get.mockRejectedValue(new Error('cache read failed'));
+    redis.set.mockRejectedValue(new Error('cache write failed'));
+    axios.get.mockResolvedValue({ data: { recommendations: [{ movieId: 3 }] } });
+
+    const result = await recommendationService.getRecommendations(7);
+
+    expect(result).toEqual([{ movieId: 3 }]);
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Redis get'),
+      'cache read failed'
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Redis set'),
+      'cache write failed'
+    );
+  });
+
+  test('DB fallback maps unrated recommendation rows with default genres', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    redis.get.mockResolvedValue(null);
+    axios.get.mockRejectedValue(new Error('service unavailable'));
+    pool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          movie_id: 2,
+          title: 'Fallback Movie',
+          poster_path: null,
+          avg_rating: null,
+          genres: null,
+          final_score: 0.75,
+          cf_score: 0.8,
+          content_score: 0.7,
+          popularity_score: 0.1,
+        },
+      ],
+    });
+
+    const result = await recommendationService.getRecommendations(7);
+
+    expect(result[0]).toMatchObject({
+      movieId: 2,
+      avgRating: 0,
+      genres: [],
     });
   });
 });

@@ -1,4 +1,4 @@
-const pool  = require('../config/database');
+const pool = require('../config/database');
 const redis = require('../config/redis');
 
 const TYPE_MAP = { LIKE: 1, DISLIKE: 0, REMOVE: 2 };
@@ -7,7 +7,8 @@ const submitFeedback = async ({ userId, movieId, type }) => {
   const feedbackType = TYPE_MAP[type];
   if (feedbackType === undefined) {
     const err = new Error('피드백 타입은 LIKE, DISLIKE, REMOVE 중 하나여야 합니다.');
-    err.status = 422; err.code = 'VALIDATION_ERROR';
+    err.status = 422;
+    err.code = 'VALIDATION_ERROR';
     throw err;
   }
 

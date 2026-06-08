@@ -1,9 +1,10 @@
 const axios = require('axios');
-const pool  = require('../config/database');
+const pool = require('../config/database');
 const redis = require('../config/redis');
 
 const RECOMMEND_URL = () => process.env.RECOMMEND_SERVICE_URL || 'http://localhost:8000';
 const CACHE_TTL     = 3600;
+const RECOMMEND_TIMEOUT_MS = 2500;
 
 /** DISLIKE/REMOVE 피드백을 받은 영화 ID 목록 조회 (FR-63) */
 const getNegativeFeedbackIds = async (userId) => {
@@ -14,6 +15,13 @@ const getNegativeFeedbackIds = async (userId) => {
   return result.rows.map((r) => r.movie_id);
 };
 
+/**
+ * Returns personalized recommendations for a user using Redis cache-aside,
+ * a bounded recommendation-engine call, and a database fallback.
+ *
+ * @param {number} userId Authenticated user id.
+ * @returns {Promise<Array<object>>} Recommendation rows sorted by final score.
+ */
 const getRecommendations = async (userId) => {
   // 신규 유저 체크 (평점 0개 → 장르 기반 추천)
   const countResult = await pool.query(
@@ -42,7 +50,7 @@ const getRecommendations = async (userId) => {
       return { ...JSON.parse(cached), fromCache: true };
     }
   } catch (e) {
-    console.error('Redis get 실패:', e.message);
+    console.error('Redis get failed:', e.message);
   }
 
   // 사용자 세그먼트에 따른 가중치 설정
@@ -53,12 +61,11 @@ const getRecommendations = async (userId) => {
     segmentWeights = { alpha: 0.5, beta: 0.5, gamma: 0, segment: 'MID_USER' };
   }
 
-  // Python 추천 서비스 호출
   let recommendations;
   let weights = segmentWeights;
   try {
     const response = await axios.get(`${RECOMMEND_URL()}/recommendations/${userId}`, {
-      timeout: 10000,
+      timeout: RECOMMEND_TIMEOUT_MS,
     });
     // Python은 snake_case → camelCase 변환
     recommendations = (response.data.recommendations || []).map(normalizePythonMovie);
@@ -87,7 +94,7 @@ const getRecommendations = async (userId) => {
   try {
     await redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
   } catch (e) {
-    console.error('Redis set 실패:', e.message);
+    console.error('Redis set failed:', e.message);
   }
 
   return result;
