@@ -11,23 +11,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-INSERT INTO public.genres VALUES (1, 'Action');
-INSERT INTO public.genres VALUES (2, 'Comedy');
-INSERT INTO public.genres VALUES (3, 'Drama');
-INSERT INTO public.genres VALUES (4, 'Horror');
-INSERT INTO public.genres VALUES (5, 'Romance');
-INSERT INTO public.genres VALUES (6, 'Sci-Fi');
-INSERT INTO public.genres VALUES (7, 'Thriller');
-INSERT INTO public.genres VALUES (8, 'Animation');
-INSERT INTO public.genres VALUES (9, 'Documentary');
-INSERT INTO public.genres VALUES (10, 'Fantasy');
-INSERT INTO public.genres VALUES (11, 'Crime');
-INSERT INTO public.genres VALUES (12, 'Adventure');
-INSERT INTO public.genres VALUES (13, 'Mystery');
-INSERT INTO public.genres VALUES (14, 'Family');
-INSERT INTO public.genres VALUES (15, 'History');
-
-
 
 INSERT INTO public.movies VALUES (965, 310, '브루스 올마이티', '["Fantasy", "Comedy"]', NULL, '[]', '무능한 소시민이 전지전능한 능력을 얻어 능력을 남발하고 다니다 곧 "신의 일에도 여러 가지 힘든 일이 따른다"는 걸 알게 되는 것. 또한 전지전능한 능력으로도 사랑하는 사람의 마음과 자유 의지는 자기 뜻대로 할 수 없다는 것을 깨닫고 자신의 곁을 떠난 애인을 위해 신의 자리를 포기하기로 한다. 그때 마침 휴가 간 신이 돌아오고, 다시 평범한 리포터로 돌아와 깨달음을 얻고 행복한 삶을 되찾는다.', 'https://image.tmdb.org/t/p/w500/bIqFRqtvE3pDSgamXGIAbVCxAKG.jpg', 2003, 0, 0, '2026-06-06 13:25:33.477431', 'US');
 INSERT INTO public.movies VALUES (5, 1380291, '톰 클랜시의 잭 라이언: 고스트 워', '["Action", "Thriller"]', 'Andrew Bernstein', '["John Krasinski", "Wendell Pierce", "Sienna Miller", "Michael Kelly", "Max Beesley"]', '잭 라이언은 국제 비밀 작전으로 치명적인 음모의 실체가 드러나면서 마지못해 다시 첩보의 세계로 끌려 들어간다. 시간과의 싸움 속에서 그는 CIA 동료 마이크 노벰버, 제임스 그리어, 그리고 냉철한 MI6 요원 에마 말로와 함께 통제권을 벗어난 블랙옵스 부대에 맞서며, 지금껏 가장 뼈아프고 혹독한 작전을 펼쳐나간다.', 'https://image.tmdb.org/t/p/w500/3PufRWSVgSVwIr9M5YOmx4gu5Fu.jpg', 2026, 0, 0, '2026-06-06 13:24:56.330954', 'US');
