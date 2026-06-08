@@ -24,20 +24,19 @@ describe('configuration modules', () => {
 
     require('../src/config/database');
 
-    expect(Pool).toHaveBeenCalledWith(expect.objectContaining({
-      host: 'localhost',
-      port: 5432,
-      database: 'algomovie',
-      user: 'postgres',
-      password: 'postgres',
-    }));
+    expect(Pool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: 'localhost',
+        port: 5432,
+        database: 'algomovie',
+        user: 'postgres',
+        password: 'postgres',
+      })
+    );
     expect(on).toHaveBeenCalledWith('error', expect.any(Function));
 
     on.mock.calls[0][1](new Error('db down'));
-    expect(console.error).toHaveBeenCalledWith(
-      'Unexpected DB pool error:',
-      expect.any(Error)
-    );
+    expect(console.error).toHaveBeenCalledWith('Unexpected DB pool error:', expect.any(Error));
   });
 
   test('database config honors explicit environment values', () => {
@@ -52,13 +51,15 @@ describe('configuration modules', () => {
 
     require('../src/config/database');
 
-    expect(Pool).toHaveBeenCalledWith(expect.objectContaining({
-      host: 'db.example.test',
-      port: 15432,
-      database: 'movie_test',
-      user: 'movie_user',
-      password: 'secret',
-    }));
+    expect(Pool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: 'db.example.test',
+        port: 15432,
+        database: 'movie_test',
+        user: 'movie_user',
+        password: 'secret',
+      })
+    );
   });
 
   test('redis config uses defaults, retry backoff, and connection handlers', () => {
@@ -75,11 +76,13 @@ describe('configuration modules', () => {
     require('../src/config/redis');
 
     const options = Redis.mock.calls[0][0];
-    expect(options).toEqual(expect.objectContaining({
-      host: 'localhost',
-      port: 6379,
-      password: undefined,
-    }));
+    expect(options).toEqual(
+      expect.objectContaining({
+        host: 'localhost',
+        port: 6379,
+        password: undefined,
+      })
+    );
     expect(options.retryStrategy(10)).toBe(500);
     expect(options.retryStrategy(100)).toBe(2000);
 
@@ -102,10 +105,12 @@ describe('configuration modules', () => {
 
     require('../src/config/redis');
 
-    expect(Redis).toHaveBeenCalledWith(expect.objectContaining({
-      host: 'redis.example.test',
-      port: 16379,
-      password: 'redis-secret',
-    }));
+    expect(Redis).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: 'redis.example.test',
+        port: 16379,
+        password: 'redis-secret',
+      })
+    );
   });
 });

@@ -15,19 +15,21 @@ describe('view history integration and service behavior (FR-65~FR-70)', () => {
   test('authenticated movie detail view stores history and trims it to recent 10', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          movie_id: 10,
-          tmdb_id: 100,
-          title: 'Movie',
-          genres: ['Drama'],
-          director: 'Director',
-          poster_path: '/poster.png',
-          release_year: 2026,
-          avg_rating: '4.0',
-          rating_count: 1,
-          cast_members: ['Actor'],
-          overview: 'Overview',
-        }],
+        rows: [
+          {
+            movie_id: 10,
+            tmdb_id: 100,
+            title: 'Movie',
+            genres: ['Drama'],
+            director: 'Director',
+            poster_path: '/poster.png',
+            release_year: 2026,
+            avg_rating: '4.0',
+            rating_count: 1,
+            cast_members: ['Actor'],
+            overview: 'Overview',
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] });
@@ -39,10 +41,7 @@ describe('view history integration and service behavior (FR-65~FR-70)', () => {
       expect.stringContaining('INSERT INTO view_history'),
       [7, 10]
     );
-    expect(pool.query).toHaveBeenCalledWith(
-      expect.stringContaining('LIMIT 10'),
-      [7]
-    );
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('LIMIT 10'), [7]);
   });
 
   test('recent view history returns max 10 movies in viewed time order', async () => {

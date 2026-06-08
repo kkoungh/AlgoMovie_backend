@@ -1,6 +1,6 @@
-const ratingService   = require('../services/ratingService');
+const ratingService = require('../services/ratingService');
 const wishlistService = require('../services/wishlistService');
-const pool            = require('../config/database');
+const pool = require('../config/database');
 
 const getMyReviews = async (req, res, next) => {
   try {
@@ -36,11 +36,11 @@ const getMyHistory = async (req, res, next) => {
       history: result.rows.map((row) => ({
         viewedAt: row.viewed_at,
         movie: {
-          movieId:    row.movie_id,
-          title:      row.title,
+          movieId: row.movie_id,
+          title: row.title,
           posterPath: row.poster_path,
-          avgRating:  parseFloat(row.avg_rating) || 0,
-          genres:     row.genres || [],
+          avgRating: parseFloat(row.avg_rating) || 0,
+          genres: row.genres || [],
         },
       })),
     });

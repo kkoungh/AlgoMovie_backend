@@ -98,16 +98,18 @@ describe('search service unit tests', () => {
   test('search uses parameterized title/director/cast query', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          movie_id: 10,
-          title: 'Inception',
-          genres: ['Sci-Fi'],
-          director: 'Christopher Nolan',
-          poster_path: '/poster.png',
-          release_year: 2010,
-          avg_rating: '4.8',
-          rating_count: 100,
-        }],
+        rows: [
+          {
+            movie_id: 10,
+            title: 'Inception',
+            genres: ['Sci-Fi'],
+            director: 'Christopher Nolan',
+            poster_path: '/poster.png',
+            release_year: 2010,
+            avg_rating: '4.8',
+            rating_count: 100,
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ count: '1' }] });
 

@@ -1,10 +1,10 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const axios = require('axios');
-const pool  = require('../config/database');
+const pool = require('../config/database');
 
-const TMDB_BASE  = process.env.TMDB_BASE_URL  || 'https://api.themoviedb.org/3';
-const TMDB_KEY   = process.env.TMDB_API_KEY;
-const TARGET     = 1000;
+const TMDB_BASE = process.env.TMDB_BASE_URL || 'https://api.themoviedb.org/3';
+const TMDB_KEY = process.env.TMDB_API_KEY;
+const TARGET = 1000;
 
 if (!TMDB_KEY) {
   console.error('TMDB_API_KEY가 설정되지 않았습니다. .env 파일을 확인하세요.');
@@ -37,17 +37,28 @@ const upsertMovie = async (movie) => {
 
 const genreIdToName = (id) => {
   const map = {
-    28: 'Action', 35: 'Comedy', 18: 'Drama', 27: 'Horror',
-    10749: 'Romance', 878: 'Sci-Fi', 53: 'Thriller', 16: 'Animation',
-    99: 'Documentary', 14: 'Fantasy', 80: 'Crime', 12: 'Adventure',
-    9648: 'Mystery', 10751: 'Family', 36: 'History',
+    28: 'Action',
+    35: 'Comedy',
+    18: 'Drama',
+    27: 'Horror',
+    10749: 'Romance',
+    878: 'Sci-Fi',
+    53: 'Thriller',
+    16: 'Animation',
+    99: 'Documentary',
+    14: 'Fantasy',
+    80: 'Crime',
+    12: 'Adventure',
+    9648: 'Mystery',
+    10751: 'Family',
+    36: 'History',
   };
   return map[id] || null;
 };
 
 const run = async () => {
   let total = 0;
-  let page  = 1;
+  let page = 1;
 
   console.log(`TMDB에서 영화 데이터 수집 시작 (목표: ${TARGET}개)`);
 

@@ -15,7 +15,8 @@ describe('feedback API integration (FR-58~FR-61)', () => {
   test('logged-in user can save satisfied recommendation feedback', async () => {
     feedbackService.submitFeedback.mockResolvedValue();
 
-    const res = await request.post('/api/feedback')
+    const res = await request
+      .post('/api/feedback')
       .set('Authorization', 'Bearer test-token')
       .send({ movieId: 10, type: 'LIKE' });
 
@@ -68,7 +69,8 @@ describe('feedback service unit tests (FR-58~FR-61)', () => {
   });
 
   test('invalid feedback type is blocked', async () => {
-    await expect(feedbackService.submitFeedback({ userId: 7, movieId: 10, type: 'NOPE' }))
-      .rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
+    await expect(
+      feedbackService.submitFeedback({ userId: 7, movieId: 10, type: 'NOPE' })
+    ).rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
   });
 });

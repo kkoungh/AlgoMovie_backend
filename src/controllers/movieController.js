@@ -60,4 +60,11 @@ const getGenres = async (req, res, next) => {
   }
 };
 
-module.exports = { getMovies, searchMovies, getPopularMovies, getMovieDetail, getSimilarMovies, getGenres };
+module.exports = {
+  getMovies,
+  searchMovies,
+  getPopularMovies,
+  getMovieDetail,
+  getSimilarMovies,
+  getGenres,
+};

@@ -97,10 +97,9 @@ describe('nonfunctional reliability checks', () => {
     const result = await recommendationService.getRecommendations(7);
 
     expect(result).toEqual([]);
-    expect(mockedAxios.get).toHaveBeenCalledWith(
-      expect.stringContaining('/recommendations/7'),
-      { timeout: 10000 }
-    );
+    expect(mockedAxios.get).toHaveBeenCalledWith(expect.stringContaining('/recommendations/7'), {
+      timeout: 2500,
+    });
     expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('FROM recommend_scores'), [7]);
   });
 

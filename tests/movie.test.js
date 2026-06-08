@@ -50,17 +50,19 @@ describe('movie API integration (FR-19~FR-26)', () => {
     const res = await request.get('/api/movies/10');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(expect.objectContaining({
-      movieId: expect.any(Number),
-      title: expect.any(String),
-      genres: expect.any(Array),
-      director: expect.any(String),
-      castMembers: expect.any(Array),
-      overview: expect.any(String),
-      posterPath: expect.any(String),
-      releaseYear: expect.any(Number),
-      avgRating: expect.any(Number),
-    }));
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        movieId: expect.any(Number),
+        title: expect.any(String),
+        genres: expect.any(Array),
+        director: expect.any(String),
+        castMembers: expect.any(Array),
+        overview: expect.any(String),
+        posterPath: expect.any(String),
+        releaseYear: expect.any(Number),
+        avgRating: expect.any(Number),
+      })
+    );
   });
 
   test('external TMDB calls are mockable and not required for movie list reads', async () => {
@@ -89,32 +91,36 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
   test('getMovies maps database rows to API movie fields', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          movie_id: 10,
-          tmdb_id: 100,
-          title: 'Movie',
-          genres: ['Action'],
-          director: 'Director',
-          poster_path: '/poster.png',
-          release_year: 2026,
-          avg_rating: '4.25',
-          rating_count: 8,
-        }],
+        rows: [
+          {
+            movie_id: 10,
+            tmdb_id: 100,
+            title: 'Movie',
+            genres: ['Action'],
+            director: 'Director',
+            poster_path: '/poster.png',
+            release_year: 2026,
+            avg_rating: '4.25',
+            rating_count: 8,
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ count: '1' }] });
 
     const result = await movieService.getMovies({ page: 1, limit: 20 });
 
-    expect(result.movies).toEqual([expect.objectContaining({
-      movieId: 10,
-      title: 'Movie',
-      genres: ['Action'],
-      director: 'Director',
-      posterPath: '/poster.png',
-      releaseYear: 2026,
-      avgRating: 4.25,
-      ratingCount: 8,
-    })]);
+    expect(result.movies).toEqual([
+      expect.objectContaining({
+        movieId: 10,
+        title: 'Movie',
+        genres: ['Action'],
+        director: 'Director',
+        posterPath: '/poster.png',
+        releaseYear: 2026,
+        avgRating: 4.25,
+        ratingCount: 8,
+      }),
+    ]);
   });
 
   test('genre filter is passed as a parameterized query condition', async () => {
@@ -131,17 +137,19 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
   test('getMovies returns defaults for movies without ratings or genres', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          movie_id: 10,
-          tmdb_id: 100,
-          title: 'Unrated',
-          genres: null,
-          director: null,
-          poster_path: null,
-          release_year: null,
-          avg_rating: null,
-          rating_count: null,
-        }],
+        rows: [
+          {
+            movie_id: 10,
+            tmdb_id: 100,
+            title: 'Unrated',
+            genres: null,
+            director: null,
+            poster_path: null,
+            release_year: null,
+            avg_rating: null,
+            rating_count: null,
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ count: '1' }] });
 
@@ -165,17 +173,19 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
   test('searchMovies trims keywords and maps matching rows', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          movie_id: 10,
-          tmdb_id: 100,
-          title: 'Searched Movie',
-          genres: ['Drama'],
-          director: 'Director',
-          poster_path: '/poster.png',
-          release_year: 2026,
-          avg_rating: '4.0',
-          rating_count: 5,
-        }],
+        rows: [
+          {
+            movie_id: 10,
+            tmdb_id: 100,
+            title: 'Searched Movie',
+            genres: ['Drama'],
+            director: 'Director',
+            poster_path: '/poster.png',
+            release_year: 2026,
+            avg_rating: '4.0',
+            rating_count: 5,
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ count: '1' }] });
 
@@ -205,26 +215,30 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
   test('movie detail rejects missing movie ids', async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
 
-    await expect(movieService.getMovieDetail(999))
-      .rejects.toMatchObject({ status: 404, code: 'MOVIE_NOT_FOUND' });
+    await expect(movieService.getMovieDetail(999)).rejects.toMatchObject({
+      status: 404,
+      code: 'MOVIE_NOT_FOUND',
+    });
   });
 
   test('movie detail records view history only for authenticated users', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          movie_id: 10,
-          tmdb_id: 100,
-          title: 'Movie',
-          genres: ['Drama'],
-          director: 'Director',
-          poster_path: '/poster.png',
-          release_year: 2026,
-          avg_rating: '4.0',
-          rating_count: 5,
-          cast_members: null,
-          overview: 'Overview',
-        }],
+        rows: [
+          {
+            movie_id: 10,
+            tmdb_id: 100,
+            title: 'Movie',
+            genres: ['Drama'],
+            director: 'Director',
+            poster_path: '/poster.png',
+            release_year: 2026,
+            avg_rating: '4.0',
+            rating_count: 5,
+            cast_members: null,
+            overview: 'Overview',
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] });
@@ -238,19 +252,21 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
 
   test('movie detail skips view history for guest users', async () => {
     pool.query.mockResolvedValueOnce({
-      rows: [{
-        movie_id: 10,
-        tmdb_id: 100,
-        title: 'Movie',
-        genres: ['Drama'],
-        director: 'Director',
-        poster_path: '/poster.png',
-        release_year: 2026,
-        avg_rating: '4.0',
-        rating_count: 5,
-        cast_members: ['Actor A'],
-        overview: 'Overview',
-      }],
+      rows: [
+        {
+          movie_id: 10,
+          tmdb_id: 100,
+          title: 'Movie',
+          genres: ['Drama'],
+          director: 'Director',
+          poster_path: '/poster.png',
+          release_year: 2026,
+          avg_rating: '4.0',
+          rating_count: 5,
+          cast_members: ['Actor A'],
+          overview: 'Overview',
+        },
+      ],
     });
 
     const result = await movieService.getMovieDetail(10, null);
@@ -260,11 +276,17 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
   });
 
   test('similar movie query excludes the current movie', async () => {
-    pool.query
-      .mockResolvedValueOnce({ rows: [{ genres: ['Action'] }] })
-      .mockResolvedValueOnce({
-        rows: [{ movie_id: 11, title: 'Similar', genres: ['Action'], poster_path: null, avg_rating: '4.0' }],
-      });
+    pool.query.mockResolvedValueOnce({ rows: [{ genres: ['Action'] }] }).mockResolvedValueOnce({
+      rows: [
+        {
+          movie_id: 11,
+          title: 'Similar',
+          genres: ['Action'],
+          poster_path: null,
+          avg_rating: '4.0',
+        },
+      ],
+    });
 
     const result = await movieService.getSimilarMovies(10);
 
@@ -295,13 +317,15 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
   test.failing('poster fallback is applied when poster_path is missing', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          movie_id: 10,
-          title: 'Movie',
-          genres: [],
-          poster_path: null,
-          avg_rating: '0',
-        }],
+        rows: [
+          {
+            movie_id: 10,
+            title: 'Movie',
+            genres: [],
+            poster_path: null,
+            avg_rating: '0',
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [{ count: '1' }] });
 

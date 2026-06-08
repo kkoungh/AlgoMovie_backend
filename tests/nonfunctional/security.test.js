@@ -1,5 +1,4 @@
 const { createMockPool } = require('../helpers/mockDb');
-const { loadAppWithMockAuth } = require('../helpers/mockApp');
 
 describe('nonfunctional security checks', () => {
   test('NFR-06: successful login returns JWT-shaped access and refresh tokens', async () => {
@@ -16,17 +15,22 @@ describe('nonfunctional security checks', () => {
 
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          user_id: 7,
-          email: 'tester@example.com',
-          nickname: 'tester',
-          password_hash: '$2b$12$abcdefghijklmnopqrstuu9p9H9v9H9v9H9v9H9v9H9v9H9v9H9v9',
-          status: 'ACTIVE',
-        }],
+        rows: [
+          {
+            user_id: 7,
+            email: 'tester@example.com',
+            nickname: 'tester',
+            password_hash: '$2b$12$abcdefghijklmnopqrstuu9p9H9v9H9v9H9v9H9v9H9v9H9v9H9v9',
+            status: 'ACTIVE',
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [] });
 
-    const result = await authService.login({ email: 'tester@example.com', password: 'password123' });
+    const result = await authService.login({
+      email: 'tester@example.com',
+      password: 'password123',
+    });
 
     expect(result.accessToken).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
     expect(result.refreshToken).toMatch(/^[a-f0-9]{80}$/);
@@ -40,7 +44,9 @@ describe('nonfunctional security checks', () => {
     pool.connect.mockResolvedValue(client);
     jest.doMock('../../src/config/database', () => pool);
     jest.doMock('bcrypt', () => ({
-      hash: jest.fn().mockResolvedValue('$2b$12$abcdefghijklmnopqrstuu9p9H9v9H9v9H9v9H9v9H9v9H9v9H9v9'),
+      hash: jest
+        .fn()
+        .mockResolvedValue('$2b$12$abcdefghijklmnopqrstuu9p9H9v9H9v9H9v9H9v9H9v9H9v9H9v9'),
       compare: jest.fn(),
     }));
     jest.doMock('jsonwebtoken', () => ({
@@ -66,10 +72,11 @@ describe('nonfunctional security checks', () => {
     });
 
     expect(bcrypt.hash).toHaveBeenCalledWith('plain-password', 12);
-    expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO users'),
-      ['secure@example.com', 'secure', expect.stringMatching(/^\$2[aby]\$\d{2}\$/)]
-    );
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO users'), [
+      'secure@example.com',
+      'secure',
+      expect.stringMatching(/^\$2[aby]\$\d{2}\$/),
+    ]);
     expect(client.query).not.toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO users'),
       expect.arrayContaining(['plain-password'])
@@ -113,8 +120,9 @@ describe('nonfunctional security checks', () => {
 
     pool.query.mockResolvedValueOnce({ rows: [] });
 
-    await expect(authService.login({ email: payload, password: 'anything' }))
-      .rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    await expect(authService.login({ email: payload, password: 'anything' })).rejects.toMatchObject(
+      { code: 'INVALID_CREDENTIALS' }
+    );
     expect(pool.query.mock.calls[0][0]).toContain('WHERE email = $1');
     expect(pool.query.mock.calls[0][0]).not.toContain(payload);
     expect(pool.query.mock.calls[0][1]).toEqual([payload]);

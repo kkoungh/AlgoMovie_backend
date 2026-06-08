@@ -14,6 +14,7 @@ This checklist covers backend nonfunctional requirements that are partly or full
 - `tests/nonfunctional/reliability.test.js`
   - NFR-02: 100 concurrent mocked recommendation requests complete successfully.
   - NFR-09: service layer maps more than 10,000 mock movie records.
+  - NFR-12: external recommendation service and Redis failures degrade gracefully.
   - External API and DB calls remain mocked in test paths.
 - `tests/nonfunctional/maintainability.test.js`
   - NFR-10: route, controller, service, middleware, and config modules are separated.
@@ -43,6 +44,7 @@ Use only test tokens and test data. Do not point this at production by accident.
 Check reverse proxy, load balancer, and deployment configuration:
 
 ```bash
+ALGOMOVIE_DOMAIN=api.example.com docker compose -f docker-compose.yml -f docker-compose.prod.yml config
 curl -I https://<backend-host>/health
 ```
 
@@ -85,16 +87,31 @@ ORDER BY avg_rating DESC, rating_count DESC
 LIMIT 20;
 ```
 
+## NFR-12: Graceful Degradation
+
+Recommendation and cache dependencies must fail safely:
+
+- Redis read failures should log and continue to the recommendation service.
+- Recommendation service timeouts should fall back to persisted `recommend_scores`.
+- Redis write failures should not fail the user-facing API response.
+
+Automated checks cover these branches in `tests/recommend.test.js` and
+`tests/nonfunctional/reliability.test.js`.
+
 ## NFR-13: ESLint and Prettier
 
-This project does not currently define lint/format scripts in `package.json`. If the team enables them, prefer:
+Run:
 
 ```bash
 npm run lint
 npm run format:check
 ```
 
-If scripts are not available, add project-approved ESLint/Prettier config first, then run checks in CI. Do not auto-format broad files during test-only work unless requested.
+Pass criteria:
+
+- ESLint finishes with no errors.
+- Prettier check finishes with no formatting drift.
+- The same commands run in CI before merge.
 
 ## NFR-14: JSDoc Review
 

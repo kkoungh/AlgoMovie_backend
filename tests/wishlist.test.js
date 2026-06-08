@@ -50,9 +50,7 @@ describe('wishlist service unit tests (FR-62~FR-64)', () => {
   });
 
   test('adds movie when wishlist item does not exist', async () => {
-    pool.query
-      .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [] });
+    pool.query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
     const result = await wishlistService.toggleWishlist(7, 10);
 
@@ -79,32 +77,30 @@ describe('wishlist service unit tests (FR-62~FR-64)', () => {
 
   test('wishlist insert failure is surfaced to the caller', async () => {
     const dbError = new Error('insert failed');
-    pool.query
-      .mockResolvedValueOnce({ rows: [] })
-      .mockRejectedValueOnce(dbError);
+    pool.query.mockResolvedValueOnce({ rows: [] }).mockRejectedValueOnce(dbError);
 
     await expect(wishlistService.toggleWishlist(7, 10)).rejects.toThrow('insert failed');
   });
 
   test('wishlist removal failure is surfaced to the caller', async () => {
     const dbError = new Error('delete failed');
-    pool.query
-      .mockResolvedValueOnce({ rows: [{ wishlist_id: 1 }] })
-      .mockRejectedValueOnce(dbError);
+    pool.query.mockResolvedValueOnce({ rows: [{ wishlist_id: 1 }] }).mockRejectedValueOnce(dbError);
 
     await expect(wishlistService.toggleWishlist(7, 10)).rejects.toThrow('delete failed');
   });
 
   test('getWishlist maps newest wishlist movies', async () => {
     pool.query.mockResolvedValueOnce({
-      rows: [{
-        added_at: '2026-06-02',
-        movie_id: 10,
-        title: 'Movie',
-        poster_path: '/poster.png',
-        avg_rating: '4.4',
-        genres: ['Drama'],
-      }],
+      rows: [
+        {
+          added_at: '2026-06-02',
+          movie_id: 10,
+          title: 'Movie',
+          poster_path: '/poster.png',
+          avg_rating: '4.4',
+          genres: ['Drama'],
+        },
+      ],
     });
 
     const result = await wishlistService.getWishlist(7);
@@ -118,14 +114,16 @@ describe('wishlist service unit tests (FR-62~FR-64)', () => {
 
   test('getWishlist returns safe defaults for unrated movies without genres', async () => {
     pool.query.mockResolvedValueOnce({
-      rows: [{
-        added_at: '2026-06-03',
-        movie_id: 11,
-        title: 'Unrated',
-        poster_path: null,
-        avg_rating: null,
-        genres: null,
-      }],
+      rows: [
+        {
+          added_at: '2026-06-03',
+          movie_id: 11,
+          title: 'Unrated',
+          poster_path: null,
+          avg_rating: null,
+          genres: null,
+        },
+      ],
     });
 
     const result = await wishlistService.getWishlist(7);

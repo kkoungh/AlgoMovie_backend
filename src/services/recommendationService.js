@@ -1,12 +1,19 @@
 const axios = require('axios');
-const pool  = require('../config/database');
+const pool = require('../config/database');
 const redis = require('../config/redis');
 
 const RECOMMEND_URL = () => process.env.RECOMMEND_SERVICE_URL || 'http://localhost:8000';
-const CACHE_TTL     = 3600; // 1시간
+const CACHE_TTL = 3600;
+const RECOMMEND_TIMEOUT_MS = 2500;
 
+/**
+ * Returns personalized recommendations for a user using Redis cache-aside,
+ * a bounded recommendation-engine call, and a database fallback.
+ *
+ * @param {number} userId Authenticated user id.
+ * @returns {Promise<Array<object>>} Recommendation rows sorted by final score.
+ */
 const getRecommendations = async (userId) => {
-  // 1. Redis Cache-Aside
   const cacheKey = `recommendations:${userId}`;
   try {
     const cached = await redis.get(cacheKey);
@@ -14,32 +21,36 @@ const getRecommendations = async (userId) => {
       return JSON.parse(cached);
     }
   } catch (e) {
-    console.error('Redis get 실패:', e.message);
+    console.error('Redis get failed:', e.message);
   }
 
-  // 2. Python 추천 서비스 호출
   let recommendations;
   try {
     const response = await axios.get(`${RECOMMEND_URL()}/recommendations/${userId}`, {
-      timeout: 10000,
+      timeout: RECOMMEND_TIMEOUT_MS,
     });
     recommendations = response.data.recommendations || [];
   } catch (e) {
-    console.error('추천 서비스 호출 실패:', e.message);
-    // 추천 서비스 장애 시 DB에서 직접 조회
+    console.error('Recommendation service call failed:', e.message);
     recommendations = await getFromDB(userId);
   }
 
-  // 3. Redis에 캐싱
   try {
     await redis.set(cacheKey, JSON.stringify(recommendations), 'EX', CACHE_TTL);
   } catch (e) {
-    console.error('Redis set 실패:', e.message);
+    console.error('Redis set failed:', e.message);
   }
 
   return recommendations;
 };
 
+/**
+ * Reads the latest persisted recommendation scores when the recommendation
+ * engine is unavailable or too slow.
+ *
+ * @param {number} userId Authenticated user id.
+ * @returns {Promise<Array<object>>} Up to 30 fallback recommendation rows.
+ */
 const getFromDB = async (userId) => {
   const result = await pool.query(
     `SELECT rs.final_score, rs.cf_score, rs.content_score, rs.popularity_score,
@@ -53,14 +64,14 @@ const getFromDB = async (userId) => {
   );
 
   return result.rows.map((row) => ({
-    movieId:         row.movie_id,
-    title:           row.title,
-    posterPath:      row.poster_path,
-    avgRating:       parseFloat(row.avg_rating) || 0,
-    genres:          row.genres || [],
-    finalScore:      row.final_score,
-    cfScore:         row.cf_score,
-    contentScore:    row.content_score,
+    movieId: row.movie_id,
+    title: row.title,
+    posterPath: row.poster_path,
+    avgRating: parseFloat(row.avg_rating) || 0,
+    genres: row.genres || [],
+    finalScore: row.final_score,
+    cfScore: row.cf_score,
+    contentScore: row.content_score,
     popularityScore: row.popularity_score,
   }));
 };

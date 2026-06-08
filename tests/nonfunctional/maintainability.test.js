@@ -39,7 +39,9 @@ describe('nonfunctional maintainability checks', () => {
 
     for (const moduleName of modules) {
       expect(fs.existsSync(path.join(root, 'src/routes', `${moduleName}.js`))).toBe(true);
-      expect(fs.existsSync(path.join(root, 'src/controllers', controllerNames[moduleName]))).toBe(true);
+      expect(fs.existsSync(path.join(root, 'src/controllers', controllerNames[moduleName]))).toBe(
+        true
+      );
       expect(fs.existsSync(path.join(root, 'src/services', serviceNames[moduleName]))).toBe(true);
     }
   });

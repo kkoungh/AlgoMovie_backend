@@ -32,9 +32,11 @@ describe('error handler middleware', () => {
     errorHandler(err, req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'INTERNAL_ERROR',
-      message: expect.any(String),
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'INTERNAL_ERROR',
+        message: expect.any(String),
+      })
+    );
   });
 });

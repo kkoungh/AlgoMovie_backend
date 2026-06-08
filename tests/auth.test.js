@@ -116,7 +116,9 @@ describe('auth API integration (FR-01~FR-06, FR-17~FR-18)', () => {
   test('withdraw calls account deletion for authenticated user', async () => {
     authService.withdraw.mockResolvedValue();
 
-    const res = await request.delete('/api/auth/withdraw').set('Authorization', 'Bearer test-token');
+    const res = await request
+      .delete('/api/auth/withdraw')
+      .set('Authorization', 'Bearer test-token');
 
     expect(res.status).toBe(204);
     expect(authService.withdraw).toHaveBeenCalledWith(7);
@@ -154,12 +156,14 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
   test('signUp rejects duplicate email before insert', async () => {
     pool.query.mockResolvedValueOnce({ rows: [{ user_id: 1 }] });
 
-    await expect(authService.signUp({
-      email: 'dupe@example.com',
-      password: 'pw',
-      nickname: 'dupe',
-      genres: [1, 2, 3],
-    })).rejects.toMatchObject({ status: 409, code: 'EMAIL_DUPLICATE' });
+    await expect(
+      authService.signUp({
+        email: 'dupe@example.com',
+        password: 'pw',
+        nickname: 'dupe',
+        genres: [1, 2, 3],
+      })
+    ).rejects.toMatchObject({ status: 409, code: 'EMAIL_DUPLICATE' });
 
     expect(pool.connect).not.toHaveBeenCalled();
   });
@@ -167,12 +171,14 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
   test('signUp rejects missing or insufficient preferred genres', async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
 
-    await expect(authService.signUp({
-      email: 'new@example.com',
-      password: 'pw',
-      nickname: 'newbie',
-      genres: [1, 2],
-    })).rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
+    await expect(
+      authService.signUp({
+        email: 'new@example.com',
+        password: 'pw',
+        nickname: 'newbie',
+        genres: [1, 2],
+      })
+    ).rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
 
     expect(pool.connect).not.toHaveBeenCalled();
   });
@@ -197,10 +203,11 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
     expect(result).toEqual({ userId: 11 });
     expect(bcrypt.hash).toHaveBeenCalledWith('pw', 12);
     expect(client.query).toHaveBeenCalledWith('BEGIN');
-    expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO users'),
-      ['new@example.com', 'newbie', 'hashed-password']
-    );
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO users'), [
+      'new@example.com',
+      'newbie',
+      'hashed-password',
+    ]);
     expect(client.query).toHaveBeenCalledWith('COMMIT');
     expect(client.release).toHaveBeenCalled();
   });
@@ -212,12 +219,14 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
       .mockRejectedValueOnce(new Error('insert failed'))
       .mockResolvedValueOnce();
 
-    await expect(authService.signUp({
-      email: 'new@example.com',
-      password: 'pw',
-      nickname: 'newbie',
-      genres: [1, 2, 3],
-    })).rejects.toThrow('insert failed');
+    await expect(
+      authService.signUp({
+        email: 'new@example.com',
+        password: 'pw',
+        nickname: 'newbie',
+        genres: [1, 2, 3],
+      })
+    ).rejects.toThrow('insert failed');
 
     expect(client.query).toHaveBeenCalledWith('ROLLBACK');
     expect(client.release).toHaveBeenCalled();
@@ -226,13 +235,15 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
   test('login validates password and creates access and refresh tokens', async () => {
     pool.query
       .mockResolvedValueOnce({
-        rows: [{
-          user_id: 7,
-          email: 'tester@example.com',
-          nickname: 'tester',
-          password_hash: 'hash',
-          status: 'ACTIVE',
-        }],
+        rows: [
+          {
+            user_id: 7,
+            email: 'tester@example.com',
+            nickname: 'tester',
+            password_hash: 'hash',
+            status: 'ACTIVE',
+          },
+        ],
       })
       .mockResolvedValueOnce({ rows: [] });
 
@@ -256,51 +267,60 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
   test('login rejects a non-existent email', async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
 
-    await expect(authService.login({ email: 'missing@example.com', password: 'pw' }))
-      .rejects.toMatchObject({ status: 401, code: 'INVALID_CREDENTIALS' });
+    await expect(
+      authService.login({ email: 'missing@example.com', password: 'pw' })
+    ).rejects.toMatchObject({ status: 401, code: 'INVALID_CREDENTIALS' });
     expect(bcrypt.compare).not.toHaveBeenCalled();
   });
 
   test('login rejects a deleted account before password comparison', async () => {
     pool.query.mockResolvedValueOnce({
-      rows: [{
-        user_id: 7,
-        email: 'tester@example.com',
-        nickname: 'tester',
-        password_hash: 'hash',
-        status: 'DELETED',
-      }],
+      rows: [
+        {
+          user_id: 7,
+          email: 'tester@example.com',
+          nickname: 'tester',
+          password_hash: 'hash',
+          status: 'DELETED',
+        },
+      ],
     });
 
-    await expect(authService.login({ email: 'tester@example.com', password: 'pw' }))
-      .rejects.toMatchObject({ status: 401, code: 'ACCOUNT_DELETED' });
+    await expect(
+      authService.login({ email: 'tester@example.com', password: 'pw' })
+    ).rejects.toMatchObject({ status: 401, code: 'ACCOUNT_DELETED' });
     expect(bcrypt.compare).not.toHaveBeenCalled();
   });
 
   test('login rejects a wrong password', async () => {
     pool.query.mockResolvedValueOnce({
-      rows: [{
-        user_id: 7,
-        email: 'tester@example.com',
-        nickname: 'tester',
-        password_hash: 'hash',
-        status: 'ACTIVE',
-      }],
+      rows: [
+        {
+          user_id: 7,
+          email: 'tester@example.com',
+          nickname: 'tester',
+          password_hash: 'hash',
+          status: 'ACTIVE',
+        },
+      ],
     });
     bcrypt.compare.mockResolvedValueOnce(false);
 
-    await expect(authService.login({ email: 'tester@example.com', password: 'wrong' }))
-      .rejects.toMatchObject({ status: 401, code: 'INVALID_CREDENTIALS' });
+    await expect(
+      authService.login({ email: 'tester@example.com', password: 'wrong' })
+    ).rejects.toMatchObject({ status: 401, code: 'INVALID_CREDENTIALS' });
     expect(pool.query).toHaveBeenCalledTimes(1);
   });
 
   test('refreshAccessToken issues a new access token for a valid refresh token', async () => {
     pool.query.mockResolvedValueOnce({
-      rows: [{
-        user_id: 7,
-        email: 'tester@example.com',
-        nickname: 'tester',
-      }],
+      rows: [
+        {
+          user_id: 7,
+          email: 'tester@example.com',
+          nickname: 'tester',
+        },
+      ],
     });
 
     const result = await authService.refreshAccessToken('refresh-token');
@@ -316,8 +336,10 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
   test('refreshAccessToken rejects an unknown or expired refresh token', async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
 
-    await expect(authService.refreshAccessToken('missing-token'))
-      .rejects.toMatchObject({ status: 401, code: 'INVALID_REFRESH_TOKEN' });
+    await expect(authService.refreshAccessToken('missing-token')).rejects.toMatchObject({
+      status: 401,
+      code: 'INVALID_REFRESH_TOKEN',
+    });
   });
 
   test('withdraw marks account deleted and invalidates refresh tokens', async () => {
