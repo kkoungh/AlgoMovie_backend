@@ -2097,8 +2097,3 @@ SELECT pg_catalog.setval('public.genres_genre_id_seq', 15, true);
 
 
 SELECT pg_catalog.setval('public.movies_movie_id_seq', 8852, true);
-
-
-
-\unrestrict aHCrd2sVvrQOsbSdFdo62RM8qa9MxEfgeEFYW7nlioSqnstgnO4Rz5tDGDb9hew
-
