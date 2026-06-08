@@ -111,11 +111,7 @@ const refreshAccessToken = async (refreshToken) => {
 };
 
 const withdraw = async (userId) => {
-  await pool.query(
-    `UPDATE users SET status = 'DELETED' WHERE user_id = $1`,
-    [userId]
-  );
-  await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM users WHERE user_id = $1', [userId]);
 };
 
 const generateAccessToken = (user) =>

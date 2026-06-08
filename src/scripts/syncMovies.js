@@ -48,9 +48,8 @@ const fetchCredits = async (tmdbId) => {
   }
 };
 
-const upsertMovie = async (movie, director, cast) => {
-  const genres  = (movie.genre_ids || []).map((id) => genreIdToName(id)).filter(Boolean);
-  const country = (movie.origin_country && movie.origin_country[0]) || 'US';
+const upsertMovie = async (movie, director, cast, country) => {
+  const genres = (movie.genre_ids || []).map((id) => genreIdToName(id)).filter(Boolean);
   await pool.query(
     `INSERT INTO movies
        (tmdb_id, title, genres, overview, poster_path, release_year, origin_country, director, cast_members)
@@ -98,7 +97,7 @@ const run = async () => {
 
         for (const m of movies) {
           const { director, cast } = await fetchCredits(m.id);
-          await upsertMovie(m, director, cast);
+          await upsertMovie(m, director, cast, country);
           countryTotal++;
           grandTotal++;
           if (countryTotal >= target) break;

@@ -1,4 +1,8 @@
-const pool = require('../config/database');
+const pool  = require('../config/database');
+const axios = require('axios');
+
+const TMDB_BASE = process.env.TMDB_BASE_URL || 'https://api.themoviedb.org/3';
+const TMDB_KEY  = process.env.TMDB_API_KEY;
 
 const getMovies = async ({ genre, country, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
@@ -71,23 +75,52 @@ const searchMovies = async ({ q, page = 1, limit = 20 }) => {
 };
 
 const getPopularMovies = async ({ period = 'weekly' }) => {
-  const days = period === 'monthly' ? 30 : 7;
+  // TMDB trending: week / discover popularity for monthly
+  let tmdbIds = [];
+  try {
+    if (period === 'weekly') {
+      const res = await axios.get(`${TMDB_BASE}/trending/movie/week`, {
+        params: { api_key: TMDB_KEY, language: 'ko-KR' },
+        timeout: 8000,
+      });
+      tmdbIds = (res.data.results || []).map((m) => m.id);
+    } else {
+      const res = await axios.get(`${TMDB_BASE}/discover/movie`, {
+        params: {
+          api_key: TMDB_KEY,
+          language: 'ko-KR',
+          sort_by: 'popularity.desc',
+          'vote_count.gte': 50,
+        },
+        timeout: 8000,
+      });
+      tmdbIds = (res.data.results || []).map((m) => m.id);
+    }
+  } catch (_) {}
 
-  const result = await pool.query(
-    `SELECT m.movie_id, m.tmdb_id, m.title, m.genres, m.director,
-            m.poster_path, m.release_year, m.avg_rating, m.rating_count
-     FROM movies m
-     WHERE m.rating_count > 0
-     ORDER BY
-       (SELECT AVG(r.score) FROM ratings r
-        WHERE r.movie_id = m.movie_id
-          AND r.created_at >= NOW() - INTERVAL '${days} days') DESC NULLS LAST,
-       m.avg_rating DESC
-     LIMIT 20`,
-    []
+  // TMDB 결과가 있으면 우리 DB와 tmdb_id로 매칭, 순서 유지
+  if (tmdbIds.length > 0) {
+    const result = await pool.query(
+      `SELECT movie_id, tmdb_id, title, genres, director, poster_path, release_year, avg_rating, rating_count
+       FROM movies WHERE tmdb_id = ANY($1)`,
+      [tmdbIds]
+    );
+    const byTmdb = Object.fromEntries(result.rows.map((r) => [r.tmdb_id, r]));
+    const ordered = tmdbIds
+      .map((id) => byTmdb[id])
+      .filter(Boolean)
+      .slice(0, 20);
+    if (ordered.length >= 5) {
+      return { movies: ordered.map(formatMovie) };
+    }
+  }
+
+  // fallback: avg_rating 기준
+  const fallback = await pool.query(
+    `SELECT movie_id, tmdb_id, title, genres, director, poster_path, release_year, avg_rating, rating_count
+     FROM movies ORDER BY avg_rating DESC, rating_count DESC LIMIT 20`
   );
-
-  return { movies: result.rows.map(formatMovie) };
+  return { movies: fallback.rows.map(formatMovie) };
 };
 
 const getMovieDetail = async (movieId, userId) => {

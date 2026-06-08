@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   email             VARCHAR(255) UNIQUE NOT NULL,
   nickname          VARCHAR(50)  NOT NULL,
   password_hash     VARCHAR(255) NOT NULL,
-  profile_image_url VARCHAR(500),
+  profile_image_url TEXT,
   rating_count      INT          NOT NULL DEFAULT 0,
   status            VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE',
   created_at        TIMESTAMP    NOT NULL DEFAULT NOW()
