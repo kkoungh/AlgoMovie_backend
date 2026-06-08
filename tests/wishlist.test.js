@@ -115,4 +115,28 @@ describe('wishlist service unit tests (FR-62~FR-64)', () => {
       movie: { movieId: 10, title: 'Movie', avgRating: 4.4, genres: ['Drama'] },
     });
   });
+
+  test('getWishlist returns safe defaults for unrated movies without genres', async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [{
+        added_at: '2026-06-03',
+        movie_id: 11,
+        title: 'Unrated',
+        poster_path: null,
+        avg_rating: null,
+        genres: null,
+      }],
+    });
+
+    const result = await wishlistService.getWishlist(7);
+
+    expect(result[0]).toMatchObject({
+      movie: {
+        movieId: 11,
+        title: 'Unrated',
+        avgRating: 0,
+        genres: [],
+      },
+    });
+  });
 });

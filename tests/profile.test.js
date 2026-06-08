@@ -116,9 +116,60 @@ describe('profile service unit tests (FR-07~FR-10)', () => {
     });
   });
 
+  test('getProfile rejects when the active user does not exist', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    await expect(userService.getProfile(404))
+      .rejects.toMatchObject({ status: 404, code: 'USER_NOT_FOUND' });
+  });
+
   test('updateProfile rejects empty profile changes', async () => {
     await expect(userService.updateProfile(7, {}))
       .rejects.toMatchObject({ status: 422, code: 'VALIDATION_ERROR' });
+  });
+
+  test('updateProfile can update only a nickname', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [{
+          user_id: 7,
+          email: 'tester@example.com',
+          nickname: 'nickname-only',
+          profile_image_url: null,
+          rating_count: 0,
+        }],
+      })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const profile = await userService.updateProfile(7, { nickname: 'nickname-only' });
+
+    expect(pool.query.mock.calls[0][0]).toContain('nickname = $1');
+    expect(pool.query.mock.calls[0][0]).not.toContain('profile_image_url');
+    expect(pool.query.mock.calls[0][1]).toEqual(['nickname-only', 7]);
+    expect(profile.nickname).toBe('nickname-only');
+  });
+
+  test('updateProfile can update only a profile image URL', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [{
+          user_id: 7,
+          email: 'tester@example.com',
+          nickname: 'tester',
+          profile_image_url: '/profiles/only.png',
+          rating_count: 0,
+        }],
+      })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const profile = await userService.updateProfile(7, { profileImageUrl: '/profiles/only.png' });
+
+    expect(pool.query.mock.calls[0][0]).toContain('profile_image_url = $1');
+    expect(pool.query.mock.calls[0][0]).not.toContain('nickname =');
+    expect(pool.query.mock.calls[0][1]).toEqual(['/profiles/only.png', 7]);
+    expect(profile.profileImageUrl).toBe('/profiles/only.png');
   });
 
   test('getMyRatings requests newest ratings first and maps movie data', async () => {
