@@ -144,7 +144,7 @@ const getSimilarMovies = async (movieId) => {
      WHERE movie_id != $1
        AND genres::text ILIKE $2
      ORDER BY avg_rating DESC
-     LIMIT 5`,
+     LIMIT 20`,
     [movieId, `%${genres[0] || ''}%`]
   );
 
