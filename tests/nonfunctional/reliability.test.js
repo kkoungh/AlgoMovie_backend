@@ -92,11 +92,16 @@ describe('nonfunctional reliability checks', () => {
     const recommendationService = require('../../src/services/recommendationService');
     const mockedAxios = require('axios');
 
-    pool.query.mockResolvedValueOnce({ rows: [] });
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ cnt: 5 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
 
     const result = await recommendationService.getRecommendations(7);
 
-    expect(result).toEqual([]);
+    expect(result.recommendations).toEqual([]);
     expect(mockedAxios.get).toHaveBeenCalledWith(expect.stringContaining('/recommendations/7'), {
       timeout: 2500,
     });

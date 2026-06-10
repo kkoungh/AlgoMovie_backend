@@ -7,18 +7,10 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "sync-movies": "node src/scripts/syncMovies.js",
-    "test": "jest --coverage",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit --coverage",
     "test:integration": "jest tests/integration --coverage"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "coverageDirectory": "coverage",
-    "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/scripts/**",
-      "!src/index.js"
-    ]
   },
   "dependencies": {
     "axios": "^1.6.0",

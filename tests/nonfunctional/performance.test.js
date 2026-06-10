@@ -8,7 +8,12 @@ describe('nonfunctional performance checks', () => {
     const recommendationService = {
       getRecommendations: jest
         .fn()
-        .mockResolvedValue([{ movieId: 1, title: 'Fast Recommendation', finalScore: 0.99 }]),
+        .mockResolvedValue({
+          recommendations: [{ movieId: 1, title: 'Fast Recommendation', finalScore: 0.99 }],
+          weights: { alpha: 0.5, beta: 0.5, gamma: 0 },
+          fromCache: false,
+          isNewUser: false,
+        }),
     };
     jest.doMock('../../src/services/recommendationService', () => recommendationService);
     const request = loadAppWithMockAuth();

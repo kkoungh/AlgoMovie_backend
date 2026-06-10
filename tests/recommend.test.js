@@ -13,10 +13,15 @@ describe('recommendation API integration (FR-27~FR-51)', () => {
   });
 
   test('authenticated user receives recommendations sorted by score', async () => {
-    recommendationService.getRecommendations.mockResolvedValue([
-      { movieId: 2, finalScore: 0.9 },
-      { movieId: 1, finalScore: 0.7 },
-    ]);
+    recommendationService.getRecommendations.mockResolvedValue({
+      recommendations: [
+        { movieId: 2, finalScore: 0.9 },
+        { movieId: 1, finalScore: 0.7 },
+      ],
+      weights: { alpha: 0.5, beta: 0.5, gamma: 0 },
+      fromCache: false,
+      isNewUser: false,
+    });
 
     const res = await request.get('/api/recommendations').set('Authorization', 'Bearer test-token');
 
@@ -50,16 +55,28 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
   });
 
   test('returns cached recommendations without external service call', async () => {
-    redis.get.mockResolvedValue(JSON.stringify([{ movieId: 1, finalScore: 0.8 }]));
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ cnt: 5 }] })
+      .mockResolvedValueOnce({ rows: [] });
+    redis.get.mockResolvedValue(JSON.stringify({
+      recommendations: [{ movieId: 1, finalScore: 0.8 }],
+      weights: { alpha: 0.5, beta: 0.5, gamma: 0 },
+      fromCache: false,
+      isNewUser: false,
+    }));
 
     const result = await recommendationService.getRecommendations(7);
 
-    expect(result).toEqual([{ movieId: 1, finalScore: 0.8 }]);
+    expect(result.recommendations).toEqual([{ movieId: 1, finalScore: 0.8 }]);
+    expect(result.fromCache).toBe(true);
     expect(axios.get).not.toHaveBeenCalled();
-    expect(pool.query).not.toHaveBeenCalled();
+    expect(pool.query).toHaveBeenCalledTimes(2);
   });
 
   test('calls Python recommendation service and caches top recommendations', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ cnt: 20 }] })
+      .mockResolvedValueOnce({ rows: [] });
     redis.get.mockResolvedValue(null);
     axios.get.mockResolvedValue({
       data: {
@@ -75,7 +92,7 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/recommendations/7'), {
       timeout: 2500,
     });
-    expect(result).toHaveLength(30);
+    expect(result.recommendations).toHaveLength(30);
     expect(redis.set).toHaveBeenCalledWith('recommendations:7', JSON.stringify(result), 'EX', 3600);
   });
 
@@ -83,7 +100,10 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     redis.get.mockResolvedValue(null);
     axios.get.mockRejectedValue(new Error('service unavailable'));
-    pool.query.mockResolvedValueOnce({
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ cnt: 5 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
       rows: [
         {
           movie_id: 2,
@@ -101,9 +121,9 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
 
     const result = await recommendationService.getRecommendations(7);
 
-    expect(pool.query.mock.calls[0][0]).toContain('ORDER BY rs.final_score DESC');
-    expect(pool.query.mock.calls[0][0]).toContain('LIMIT 30');
-    expect(result[0]).toMatchObject({
+    expect(pool.query.mock.calls[2][0]).toContain('ORDER BY rs.final_score DESC');
+    expect(pool.query.mock.calls[2][0]).toContain('LIMIT 30');
+    expect(result.recommendations[0]).toMatchObject({
       movieId: 2,
       finalScore: 0.75,
       cfScore: 0.8,
@@ -113,13 +133,19 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
   });
 
   test('uses an empty recommendation list when the external service omits data', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ cnt: 5 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] });
     redis.get.mockResolvedValue(null);
     axios.get.mockResolvedValue({ data: {} });
 
     const result = await recommendationService.getRecommendations(7);
 
-    expect(result).toEqual([]);
-    expect(redis.set).toHaveBeenCalledWith('recommendations:7', '[]', 'EX', 3600);
+    expect(result.recommendations).toEqual([]);
+    expect(redis.set).toHaveBeenCalledWith('recommendations:7', JSON.stringify(result), 'EX', 3600);
   });
 
   test('continues when redis get and set fail around a successful API call', async () => {
@@ -127,10 +153,15 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     redis.get.mockRejectedValue(new Error('cache read failed'));
     redis.set.mockRejectedValue(new Error('cache write failed'));
     axios.get.mockResolvedValue({ data: { recommendations: [{ movieId: 3 }] } });
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ cnt: 5 }] })
+      .mockResolvedValueOnce({ rows: [] });
 
     const result = await recommendationService.getRecommendations(7);
 
-    expect(result).toEqual([{ movieId: 3 }]);
+    expect(result.recommendations).toEqual([
+      expect.objectContaining({ movieId: 3 }),
+    ]);
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('Redis get'),
       'cache read failed'
@@ -145,7 +176,10 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     redis.get.mockResolvedValue(null);
     axios.get.mockRejectedValue(new Error('service unavailable'));
-    pool.query.mockResolvedValueOnce({
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ cnt: 5 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
       rows: [
         {
           movie_id: 2,
@@ -163,7 +197,7 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
 
     const result = await recommendationService.getRecommendations(7);
 
-    expect(result[0]).toMatchObject({
+    expect(result.recommendations[0]).toMatchObject({
       movieId: 2,
       avgRating: 0,
       genres: [],

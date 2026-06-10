@@ -342,16 +342,13 @@ describe('auth service unit tests (FR-01~FR-05, FR-17~FR-18)', () => {
     });
   });
 
-  test('withdraw marks account deleted and invalidates refresh tokens', async () => {
+  test('withdraw deletes account and invalidates refresh tokens', async () => {
     pool.query.mockResolvedValue({ rows: [] });
 
     await authService.withdraw(7);
 
-    expect(pool.query).toHaveBeenCalledWith(
-      expect.stringContaining("UPDATE users SET status = 'DELETED'"),
-      [7]
-    );
     expect(pool.query).toHaveBeenCalledWith('DELETE FROM refresh_tokens WHERE user_id = $1', [7]);
+    expect(pool.query).toHaveBeenCalledWith('DELETE FROM users WHERE user_id = $1', [7]);
   });
 });
 

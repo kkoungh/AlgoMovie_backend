@@ -78,6 +78,7 @@ describe('movie API integration (FR-19~FR-26)', () => {
 
 describe('movie service unit tests (FR-19~FR-26)', () => {
   let pool;
+  let axios;
   let movieService;
 
   beforeEach(() => {
@@ -85,7 +86,9 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
     jest.dontMock('../src/services/movieService');
     ({ pool } = createMockPool());
     jest.doMock('../src/config/database', () => pool);
+    jest.doMock('axios', () => ({ get: jest.fn() }));
     movieService = require('../src/services/movieService');
+    axios = require('axios');
   });
 
   test('getMovies maps database rows to API movie fields', async () => {
@@ -197,19 +200,31 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
   });
 
   test('popular movies uses the monthly window when requested', async () => {
+    axios.get.mockRejectedValueOnce(new Error('tmdb unavailable'));
     pool.query.mockResolvedValueOnce({ rows: [] });
 
     await movieService.getPopularMovies({ period: 'monthly' });
 
-    expect(pool.query.mock.calls[0][0]).toContain("INTERVAL '30 days'");
+    expect(axios.get).toHaveBeenCalledWith(
+      expect.stringContaining('/discover/movie'),
+      expect.objectContaining({
+        params: expect.objectContaining({ sort_by: 'popularity.desc' }),
+      })
+    );
+    expect(pool.query.mock.calls[0][0]).toContain('ORDER BY avg_rating DESC');
   });
 
   test('popular movies defaults to the weekly window', async () => {
+    axios.get.mockRejectedValueOnce(new Error('tmdb unavailable'));
     pool.query.mockResolvedValueOnce({ rows: [] });
 
     await movieService.getPopularMovies({});
 
-    expect(pool.query.mock.calls[0][0]).toContain("INTERVAL '7 days'");
+    expect(axios.get).toHaveBeenCalledWith(
+      expect.stringContaining('/trending/movie/week'),
+      expect.any(Object)
+    );
+    expect(pool.query.mock.calls[0][0]).toContain('ORDER BY avg_rating DESC');
   });
 
   test('movie detail rejects missing movie ids', async () => {
@@ -314,7 +329,7 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
     expect(result).toEqual({ movies: [] });
   });
 
-  test.failing('poster fallback is applied when poster_path is missing', async () => {
+  test('poster fallback is applied when poster_path is missing', async () => {
     pool.query
       .mockResolvedValueOnce({
         rows: [
@@ -335,7 +350,7 @@ describe('movie service unit tests (FR-19~FR-26)', () => {
     expect(result.movies[0].posterPath).not.toBe('');
   });
 
-  test.failing('similar movies returns the top 20 items required by FR-51', async () => {
+  test('similar movies returns the top 20 items required by FR-51', async () => {
     pool.query
       .mockResolvedValueOnce({ rows: [{ genres: ['Action'] }] })
       .mockResolvedValueOnce({ rows: [] });

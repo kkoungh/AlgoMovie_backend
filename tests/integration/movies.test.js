@@ -43,7 +43,9 @@ describe('GET /api/movies/search', () => {
       .mockResolvedValueOnce({ rows: [fakeMovie] })
       .mockResolvedValueOnce({ rows: [{ count: '1' }] });
 
-    const res = await request(app).get('/api/movies/search?q=어벤져스');
+    const res = await request(app)
+      .get('/api/movies/search')
+      .query({ q: '어벤져스' });
     expect(res.status).toBe(200);
     expect(res.body.movies).toHaveLength(1);
   });
