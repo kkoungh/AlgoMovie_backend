@@ -68,6 +68,7 @@ describe('search, sort and filter API integration', () => {
 
 describe('search service unit tests', () => {
   let pool;
+  let axios;
   let movieService;
 
   beforeEach(() => {
@@ -75,7 +76,9 @@ describe('search service unit tests', () => {
     jest.dontMock('../src/services/movieService');
     ({ pool } = createMockPool());
     jest.doMock('../src/config/database', () => pool);
+    jest.doMock('axios', () => ({ get: jest.fn() }));
     movieService = require('../src/services/movieService');
+    axios = require('axios');
   });
 
   test('blank search returns an empty array without querying DB', async () => {
@@ -121,16 +124,19 @@ describe('search service unit tests', () => {
   });
 
   test('popular sort switches between weekly and monthly windows', async () => {
+    axios.get.mockRejectedValue(new Error('tmdb unavailable'));
     pool.query.mockResolvedValue({ rows: [] });
 
     await movieService.getPopularMovies({ period: 'weekly' });
     await movieService.getPopularMovies({ period: 'monthly' });
 
-    expect(pool.query.mock.calls[0][0]).toContain("INTERVAL '7 days'");
-    expect(pool.query.mock.calls[1][0]).toContain("INTERVAL '30 days'");
+    expect(axios.get.mock.calls[0][0]).toContain('/trending/movie/week');
+    expect(axios.get.mock.calls[1][0]).toContain('/discover/movie');
+    expect(pool.query.mock.calls[0][0]).toContain('ORDER BY avg_rating DESC');
+    expect(pool.query.mock.calls[1][0]).toContain('ORDER BY avg_rating DESC');
   });
 
-  test.failing('country filter is implemented for movie list requests', async () => {
+  test('country filter is implemented for movie list requests', async () => {
     pool.query
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ count: '0' }] });

@@ -3,6 +3,7 @@ const axios = require('axios');
 
 const TMDB_BASE = process.env.TMDB_BASE_URL || 'https://api.themoviedb.org/3';
 const TMDB_KEY  = process.env.TMDB_API_KEY;
+const DEFAULT_POSTER_PATH = '/images/default-poster.png';
 
 const getMovies = async ({ genre, country, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
@@ -190,7 +191,7 @@ const formatMovie = (row) => ({
   title: row.title,
   genres: row.genres || [],
   director: row.director,
-  posterPath: row.poster_path,
+  posterPath: row.poster_path || DEFAULT_POSTER_PATH,
   releaseYear: row.release_year,
   avgRating: parseFloat(row.avg_rating) || 0,
   ratingCount: row.rating_count || 0,
