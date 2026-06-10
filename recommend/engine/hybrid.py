@@ -18,7 +18,7 @@ def classify_user_segment(rating_count: int) -> tuple[float, float, float]:
         return 0.0, 0.5, 0.5
 
 
-def generate_top30(
+def generate_top_n(
     user_id: int,
     rating_count: int,
     preferred_genres: list[str],
@@ -26,10 +26,12 @@ def generate_top30(
     candidate_movies: list[dict],
     negative_movie_ids: set[int],
     rated_movie_ids: set[int],
+    n: int = 50,
 ) -> list[dict]:
     """
     하이브리드 추천 알고리즘 실행.
     Final_Score = α × CF_score + β × Content_score + γ × Popularity_score
+    n: 반환할 최대 후보 수 (기본 50 — 표시용 30 + 예비 후보 20)
     """
     alpha, beta, gamma = classify_user_segment(rating_count)
 
@@ -71,6 +73,6 @@ def generate_top30(
             "popularity_score": pop,
         })
 
-    # 최종 점수 내림차순 정렬 → 상위 30개
+    # 최종 점수 내림차순 정렬 → 상위 n개
     results.sort(key=lambda x: x["final_score"], reverse=True)
-    return results[:30]
+    return results[:n]

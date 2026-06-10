@@ -1,7 +1,10 @@
 import json
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from database import get_connection
-from engine.hybrid import generate_top30
+from engine.hybrid import generate_top_n
+
+SHOWN_COUNT = 30
+SPARE_COUNT = 20
 
 app = FastAPI(title="AlgoMovie Recommendation Engine", version="1.0.0")
 
@@ -71,8 +74,8 @@ def get_recommendations(user_id: int):
                     md["genres"] = []
             candidates.append(md)
 
-        # 하이브리드 알고리즘 실행
-        recommendations = generate_top30(
+        # 하이브리드 알고리즘 실행 (표시용 30 + 예비 후보 20 = 50개)
+        top_n = generate_top_n(
             user_id=user_id,
             rating_count=rating_count,
             preferred_genres=preferred_genres,
@@ -80,11 +83,16 @@ def get_recommendations(user_id: int):
             candidate_movies=candidates,
             negative_movie_ids=negative_ids,
             rated_movie_ids=rated_ids,
+            n=SHOWN_COUNT + SPARE_COUNT,
         )
 
         cur.close()
         conn.close()
-        return {"user_id": user_id, "recommendations": recommendations}
+        return {
+            "user_id":        user_id,
+            "recommendations": top_n[:SHOWN_COUNT],
+            "spare_pool":      top_n[SHOWN_COUNT:],
+        }
 
     except HTTPException:
         raise
@@ -150,7 +158,7 @@ def _update_scores(user_id: int):
                     md["genres"] = []
             candidates.append(md)
 
-        recommendations = generate_top30(
+        top_n = generate_top_n(
             user_id=user_id,
             rating_count=rating_count,
             preferred_genres=preferred_genres,
@@ -158,7 +166,9 @@ def _update_scores(user_id: int):
             candidate_movies=candidates,
             negative_movie_ids=negative_ids,
             rated_movie_ids=rated_ids,
+            n=SHOWN_COUNT + SPARE_COUNT,
         )
+        recommendations = top_n  # DB 저장용은 50개 전체 저장
 
         # recommend_scores 테이블 UPSERT
         for rec in recommendations:

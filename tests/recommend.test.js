@@ -122,7 +122,7 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     const result = await recommendationService.getRecommendations(7);
 
     expect(pool.query.mock.calls[2][0]).toContain('ORDER BY rs.final_score DESC');
-    expect(pool.query.mock.calls[2][0]).toContain('LIMIT 30');
+    expect(pool.query.mock.calls[2][0]).toContain('LIMIT 50');
     expect(result.recommendations[0]).toMatchObject({
       movieId: 2,
       finalScore: 0.75,
