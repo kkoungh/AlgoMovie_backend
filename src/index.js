@@ -13,9 +13,13 @@ const start = async () => {
 
     const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
     if (fs.existsSync(schemaPath)) {
-      const schema = fs.readFileSync(schemaPath, 'utf8');
-      await pool.query(schema);
-      console.log('DB 스키마 초기화 완료');
+      try {
+        const schema = fs.readFileSync(schemaPath, 'utf8');
+        await pool.query(schema);
+        console.log('DB 스키마 초기화 완료');
+      } catch (schemaErr) {
+        console.warn('DB 스키마 초기화 경고 (무시 가능):', schemaErr.message);
+      }
     }
 
     app.listen(PORT, () => {
