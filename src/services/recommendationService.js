@@ -104,8 +104,13 @@ const getRecommendations = async (userId) => {
   // Python/DB 모두 비어있으면 장르 기반 폴백
   if (allRecs.length === 0) {
     console.log(`[추천] 사용자 ${userId}: 추천 결과 없음 → 장르 기반 폴백`);
-    allRecs = await getGenreBasedRecommendations(userId, excludeIds);
-    console.log(`[추천] 장르 기반 폴백 결과=${allRecs.length}`);
+    try {
+      allRecs = await getGenreBasedRecommendations(userId, excludeIds);
+      console.log(`[추천] 장르 기반 폴백 결과=${allRecs.length}`);
+    } catch (e) {
+      console.error('[추천] 장르 기반 폴백 실패:', e.message);
+      allRecs = [];
+    }
     weights = { ...segmentWeights, fallback: true };
   }
 
@@ -144,18 +149,23 @@ const getGenreBasedRecommendations = async (userId, excludeIds = []) => {
 
   // 선호 장르가 있으면 장르 필터 우선, 결과 없으면 인기순 폴백
   if (genres.length > 0) {
-    const genreRes = await pool.query(
-      `SELECT DISTINCT m.movie_id, m.title, m.poster_path, m.avg_rating, m.genres, m.rating_count
-       FROM movies m
-       WHERE EXISTS (
-         SELECT 1 FROM jsonb_array_elements_text(m.genres) AS g WHERE g = ANY($1::text[])
-       )
-       ${excludeClause}
-       ORDER BY m.avg_rating DESC, m.rating_count DESC
-       LIMIT ${SHOWN_COUNT + SPARE_COUNT}`,
-      [genres]
-    );
-    if (genreRes.rows.length > 0) return genreRes.rows.map(formatMovie);
+    try {
+      const genreRes = await pool.query(
+        `SELECT DISTINCT m.movie_id, m.title, m.poster_path, m.avg_rating, m.genres, m.rating_count
+         FROM movies m
+         WHERE EXISTS (
+           SELECT 1 FROM jsonb_array_elements_text(m.genres) AS g WHERE g = ANY($1::text[])
+         )
+         ${excludeClause}
+         ORDER BY m.avg_rating DESC, m.rating_count DESC
+         LIMIT ${SHOWN_COUNT + SPARE_COUNT}`,
+        [genres]
+      );
+      console.log(`[추천] 장르 쿼리 결과=${genreRes.rows.length} genres=${JSON.stringify(genres)}`);
+      if (genreRes.rows.length > 0) return genreRes.rows.map(formatMovie);
+    } catch (e) {
+      console.error('[추천] 장르 쿼리 실패:', e.message);
+    }
   }
 
   // 장르 없음 또는 장르 매칭 결과 없음 → 평점 높은 인기 영화
