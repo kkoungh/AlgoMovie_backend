@@ -43,18 +43,18 @@ const writeRating = async ({ userId, movieId, score, review }) => {
   // 사용자 누적 평점 수 증가
   await pool.query('UPDATE users SET rating_count = rating_count + 1 WHERE user_id = $1', [userId]);
 
-  // 비동기 백그라운드: 추천 재계산 트리거 + 캐시 무효화
+  // 비동기 백그라운드: 캐시 무효화 먼저, 이후 추천 재계산 트리거
   setImmediate(async () => {
+    try {
+      await redis.del(`recommendations:${userId}`);
+    } catch (e) {
+      console.error('Redis 캐시 삭제 실패:', e.message);
+    }
     try {
       const url = process.env.RECOMMEND_SERVICE_URL || 'http://localhost:8000';
       await axios.post(`${url}/recommendations/update/${userId}`, {}, { timeout: 30000 });
     } catch (e) {
       console.error('추천 갱신 요청 실패:', e.message);
-    }
-    try {
-      await redis.del(`recommendations:${userId}`);
-    } catch (e) {
-      console.error('Redis 캐시 삭제 실패:', e.message);
     }
   });
 
