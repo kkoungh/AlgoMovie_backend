@@ -145,7 +145,7 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     const result = await recommendationService.getRecommendations(7);
 
     expect(result.recommendations).toEqual([]);
-    expect(redis.set).toHaveBeenCalledWith('recommendations:7', JSON.stringify(result), 'EX', 3600);
+    expect(redis.set).not.toHaveBeenCalled();
   });
 
   test('continues when redis get and set fail around a successful API call', async () => {

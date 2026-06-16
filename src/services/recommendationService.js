@@ -102,10 +102,12 @@ const getRecommendations = async (userId) => {
     isNewUser: false,
   };
 
-  try {
-    await redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
-  } catch (e) {
-    console.error('Redis set failed:', e.message);
+  if (result.recommendations.length > 0) {
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL);
+    } catch (e) {
+      console.error('Redis set failed:', e.message);
+    }
   }
 
   return result;
@@ -125,27 +127,29 @@ const getGenreBasedRecommendations = async (userId, excludeIds = []) => {
     ? `AND m.movie_id NOT IN (${excludeIds.join(',')})`
     : '';
 
-  if (genres.length === 0) {
-    const res = await pool.query(
-      `SELECT movie_id, title, poster_path, avg_rating, genres, rating_count
+  // 선호 장르가 있으면 장르 필터 우선, 결과 없으면 인기순 폴백
+  if (genres.length > 0) {
+    const genreRes = await pool.query(
+      `SELECT DISTINCT m.movie_id, m.title, m.poster_path, m.avg_rating, m.genres, m.rating_count
        FROM movies m
-       WHERE 1=1 ${excludeClause}
-       ORDER BY avg_rating DESC, rating_count DESC
-       LIMIT ${SHOWN_COUNT + SPARE_COUNT}`
+       WHERE EXISTS (
+         SELECT 1 FROM jsonb_array_elements_text(m.genres) AS g WHERE g = ANY($1::text[])
+       )
+       ${excludeClause}
+       ORDER BY m.avg_rating DESC, m.rating_count DESC
+       LIMIT ${SHOWN_COUNT + SPARE_COUNT}`,
+      [genres]
     );
-    return res.rows.map(formatMovie);
+    if (genreRes.rows.length > 0) return genreRes.rows.map(formatMovie);
   }
 
+  // 장르 없음 또는 장르 매칭 결과 없음 → 평점 높은 인기 영화
   const res = await pool.query(
-    `SELECT DISTINCT m.movie_id, m.title, m.poster_path, m.avg_rating, m.genres, m.rating_count
+    `SELECT movie_id, title, poster_path, avg_rating, genres, rating_count
      FROM movies m
-     WHERE EXISTS (
-       SELECT 1 FROM jsonb_array_elements_text(m.genres) AS g WHERE g = ANY($1::text[])
-     )
-     ${excludeClause}
-     ORDER BY m.avg_rating DESC, m.rating_count DESC
-     LIMIT ${SHOWN_COUNT + SPARE_COUNT}`,
-    [genres]
+     WHERE 1=1 ${excludeClause}
+     ORDER BY avg_rating DESC, rating_count DESC
+     LIMIT ${SHOWN_COUNT + SPARE_COUNT}`
   );
   return res.rows.map(formatMovie);
 };
