@@ -90,7 +90,7 @@ describe('recommendation service unit tests (FR-27~FR-51)', () => {
     const result = await recommendationService.getRecommendations(7);
 
     expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/recommendations/7'), {
-      timeout: 2500,
+      timeout: 8000,
     });
     expect(result.recommendations).toHaveLength(30);
     expect(redis.set).toHaveBeenCalledWith('recommendations:7', JSON.stringify(result), 'EX', 3600);
