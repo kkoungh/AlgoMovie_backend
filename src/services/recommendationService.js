@@ -34,7 +34,7 @@ const getRecommendations = async (userId) => {
 
   const excludeIds = await getNegativeFeedbackIds(userId);
 
-  if (ratingCount === 0) {
+  if (ratingCount < 5) {
     const all = await getGenreBasedRecommendations(userId, excludeIds);
     return {
       recommendations: all.slice(0, SHOWN_COUNT),
