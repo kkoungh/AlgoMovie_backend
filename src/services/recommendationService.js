@@ -45,12 +45,16 @@ const getRecommendations = async (userId) => {
     };
   }
 
-  // Redis Cache-Aside
+  // Redis Cache-Aside (빈 결과 캐시는 무효화)
   const cacheKey = `recommendations:${userId}`;
   try {
     const cached = await redis.get(cacheKey);
     if (cached) {
-      return { ...JSON.parse(cached), fromCache: true };
+      const parsed = JSON.parse(cached);
+      if (parsed.recommendations && parsed.recommendations.length > 0) {
+        return { ...parsed, fromCache: true };
+      }
+      await redis.del(cacheKey);
     }
   } catch (e) {
     console.error('Redis get failed:', e.message);
