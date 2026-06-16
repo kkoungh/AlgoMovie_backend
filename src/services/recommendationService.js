@@ -52,9 +52,13 @@ const getRecommendations = async (userId) => {
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed.recommendations && parsed.recommendations.length > 0) {
+        console.log(`[추천] 캐시 히트 userId=${userId} count=${parsed.recommendations.length}`);
         return { ...parsed, fromCache: true };
       }
+      console.log(`[추천] 빈 캐시 삭제 userId=${userId}`);
       await redis.del(cacheKey);
+    } else {
+      console.log(`[추천] 캐시 미스 userId=${userId}`);
     }
   } catch (e) {
     console.error('Redis get failed:', e.message);
@@ -68,6 +72,8 @@ const getRecommendations = async (userId) => {
     segmentWeights = { alpha: 0.5, beta: 0.5, gamma: 0, segment: 'MID_USER' };
   }
 
+  console.log(`[추천] userId=${userId} ratingCount=${ratingCount} segment=${segmentWeights.segment}`);
+
   let allRecs;
   let weights = segmentWeights;
   try {
@@ -79,22 +85,27 @@ const getRecommendations = async (userId) => {
     const spare = (response.data.spare_pool      || []).map(normalizePythonMovie);
     allRecs = [...shown, ...spare];
     if (response.data.weights) weights = response.data.weights;
+    console.log(`[추천] Python 응답 shown=${shown.length} spare=${spare.length}`);
   } catch (e) {
     console.error('추천 서비스 호출 실패:', e.message);
     allRecs = await getFromDB(userId, excludeIds);
+    console.log(`[추천] DB 폴백 결과=${allRecs.length}`);
   }
 
   // 부정 피드백 영화 제거 (FR-63)
   if (excludeIds.length > 0) {
+    const before = allRecs.length;
     allRecs = allRecs.filter(
       (r) => !excludeIds.includes(parseInt(r.movieId || r.movie_id))
     );
+    console.log(`[추천] 부정피드백 제거: ${before} → ${allRecs.length}`);
   }
 
   // Python/DB 모두 비어있으면 장르 기반 폴백
   if (allRecs.length === 0) {
-    console.log(`사용자 ${userId}: 추천 결과 없음 → 장르 기반 폴백`);
+    console.log(`[추천] 사용자 ${userId}: 추천 결과 없음 → 장르 기반 폴백`);
     allRecs = await getGenreBasedRecommendations(userId, excludeIds);
+    console.log(`[추천] 장르 기반 폴백 결과=${allRecs.length}`);
     weights = { ...segmentWeights, fallback: true };
   }
 
