@@ -114,8 +114,14 @@ const refreshAccessToken = async (refreshToken) => {
 };
 
 const withdraw = async (userId) => {
-  await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
-  await pool.query('DELETE FROM users WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM recommend_scores       WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM view_history           WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM wishlist               WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM feedback               WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM ratings                WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM user_preferred_genres  WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM refresh_tokens         WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM users                  WHERE user_id = $1', [userId]);
 };
 
 const generateAccessToken = (user) =>

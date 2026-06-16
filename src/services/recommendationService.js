@@ -4,7 +4,7 @@ const redis = require('../config/redis');
 
 const RECOMMEND_URL = () => process.env.RECOMMEND_SERVICE_URL || 'http://localhost:8000';
 const CACHE_TTL          = 3600;
-const RECOMMEND_TIMEOUT_MS = 2500;
+const RECOMMEND_TIMEOUT_MS = 8000;
 const SHOWN_COUNT        = 30;
 const SPARE_COUNT        = 20;
 
